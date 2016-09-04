@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <playground version='6.0' target-platform='ios'>
     <pages>
-        <page name='字符串'/>
-        <page name='数组'/>
-        <page name='字典'/>
+        <page name='String'/>
+        <page name='Dictonary'/>
+        <page name='Array'/>
     </pages>
 </playground>
