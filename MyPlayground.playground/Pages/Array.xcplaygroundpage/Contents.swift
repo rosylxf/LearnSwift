@@ -3,8 +3,6 @@
 import Foundation
 import UIKit
 
-//: [Next](@next)
-
 func demo1() {
     
     let p = CGPoint(x: 10, y: 30)
@@ -60,3 +58,6 @@ func demo2() {
 /// MARK: - 数组的增删改
 
 /// MARK: - 数组的合并 + ，数组的合并得需要数组中的元素必须一致才能合并
+
+//: [Next](@next)
+
