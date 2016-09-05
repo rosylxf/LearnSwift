@@ -6,5 +6,9 @@
         <page name='Array'/>
         <page name='Function'/>
         <page name='Struct'/>
+        <page name='Extensions'/>
+        <page name='Closures'/>
+        <page name='Generics'/>
+        <page name='Type'/>
     </pages>
 </playground>
