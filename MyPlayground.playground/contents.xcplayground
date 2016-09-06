@@ -10,5 +10,8 @@
         <page name='Closures'/>
         <page name='Generics'/>
         <page name='Type'/>
+        <page name='Protocols'/>
+        <page name='Error Handling'/>
+        <page name='Class'/>
     </pages>
 </playground>
