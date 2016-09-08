@@ -1,0 +1,611 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Pro Swift</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<link rel="stylesheet" href="book-assets/project.css">
+	</head>
+
+	<body>
+		<p style="text-align: center;"><img id="logo" src="book-assets/logo.png" alt="Pro Swift" width="350" /></p>
+
+		<div id="container">
+<h1>Chapter 7: Patterns</h1><div class="snippet"><p><strong>Wayne Bishop (@waynewbishop), author of Swift Algorithms and Data Structures</strong></p>
+<p>This extension has been a long time favorite:</p>
+<pre>extension Int {
+    // iterates the closure body a specified number of times
+    func times(closure: (Int) -&gt; Void) {
+        for i in 0...self {
+            closure(i)
+        }
+    }
+}</pre>
+<p>What I like is its readability and usefulness. It's a neat alternative to default looping formats as it can also capture its surrounding state.</p></div><h2>Object-oriented programming</h2>
+<p>Although some people wish it were not the case, object-oriented programming (OOP) is the de facto standard way of building software. It's not <em>everywhere</em>: a lot of software is still built in C (which pre-dates OOP), and as you'll see in the following chapter Swift can be written using a similar-but-different approach called protocol-oriented programming (POP).</p>
+<p>Even when using POP, Swift still relies on the OOP underbelly of Cocoa Touch, which was written for Objective-C – a language so aggressively object-oriented that they baked &quot;object&quot; right into its name. If you need to write apps for iOS or OS X, you need to understand a little OOP in order to interact with the system. If you intend to interact with other developers, more often than not they will use OOP. If you intend to find examples online, more often than not they will use OOP too – it's unavoidable no matter how much you might love POP.</p>
+<p>In this chapter I'm going to start by giving you a lightning fast introduction to OOP, including examples in Swift. If you already understand terms like &quot;polymorphism&quot;, &quot;encapsulation&quot;, and &quot;static&quot; then you're welcome to move on.</p>
+<h3>Nouns first</h3>
+<p>OOP attempts to model programs in terms of entities that have real-world equivalents. So, if you were making an app to track hospital bookings, you'd have an entity for patients, an entity for wards, an entity for the building, an entity for staff, an entity for bookings, an entity for operations, and so on. You can be as fine-grained or otherwise as you want, but the goal is to make your entities – usually classes in OOP – reflect actual things that exist in the real world.</p>
+<p>This makes OOP easy to pick up: you can just write down a list of the nouns you care about – &quot;patient&quot;, &quot;doctor&quot;, &quot;ward&quot;, and so on – then make a class for each of them. In theory this breaks up your program into small, re-usable parts that each have specific pieces of responsibility for part of your program, but it also means you make your big architectural decisions very early in your development, and sometimes these can hinder your flexibility later.</p>
+<p>Once you have decided your nouns – i.e., created all the classes for things you care about – you add data to them in the form of properties, and add verbs to them in the form of methods.</p>
+<p>Methods are effectively identical to functions, but they carry an implicit <code>self</code> parameter. For example, look at the code below:</p>
+<pre>class Meh {
+    func doStuff(number: Int) { }
+}</pre>
+<p>The <code>doStuff()</code> function belongs to the <code>Meh</code> class, so we call it a <em>method</em> instead. And behind the scenes, it actually looks like this:</p>
+<pre>func doStuff(self: Meh, number: Int) { }</pre>
+<p>Objects are <em>reference types</em> in Swift, which means they can have multiple simultaneous owners, any of which can manipulate the object. This creates implicit dependencies across your program, which can add complexity and fragility.</p>
+<h3>Encapsulation</h3>
+<p>Because classes have their own properties and methods, they can be said to encapsulate functionality: a <code>Doctor</code> class can have all the functionality required to work as a doctor in a hospital, and the rest of your program can just call your doctor's methods to make things happen.</p>
+<p>Encapsulation is a fundamental concept in OOP, and so access modifiers exist to enforce a set of rules. Continuing with the doctor example, consider this class:</p>
+<pre>class Doctor {
+    var name = "Gregory House"
+    var currentPatient = "Taylor Swift"
+}</pre>
+<p><strong>Note:</strong> I'm using default values for the properties to avoid having to write pointless initializers.</p>
+<p>That <code>Doctor</code> class has a <code>currentPatient</code> property that holds the name of the patient they are currently attending to. Now something has gone wrong elsewhere, and Dr House is required to dash off to see another patient as a matter of priority – how should that change happen?</p>
+<p>One option is to create a <code>Hospital</code> class that can force Dr House to move, something like this:</p>
+<pre>class Hospital {
+    func assignDoctor(dr: Doctor, toPatient patient: String) {
+        dr.currentPatient = patient
+    }
+}</pre>
+<p>However, this is the antithesis of encapsulation: the <code>Doctor</code> class should contain all its own functionality, and having the <code>Hospital</code> class poke around in a doctor's properties will create spaghetti code. What if the doctor is in the middle of a check up? Or is on vacation? By placing functionality inside the <code>Doctor</code> class you centralize your logic in one place: you can refuse to move if the current task is important, you can refuse to move if you're on vacation, and so on. This means treating objects like black boxes: you don't touch their properties directly.</p>
+<p>So, the smarter way to assign a doctor to a new patient is like this:</p>
+<pre>class Doctor {
+    var name = "Gregory House"
+    var currentPatient = "Taylor Swift"
+
+    func assignToPatient(name: String) {
+        currentPatient = name
+    }
+}</pre>
+<p>You can then go ahead and add any validation directly into <code>assignToPatient()</code>.</p>
+<p>When I was much younger, I wrote a small strategy game that was similar in intention – if not completion! – to the game <em>Civilization</em>. I was fairly new to programming back then, so I didn't use encapsulation at all. When a turn ended and I wanted to figure out how much gold each city generated, I added a loop to my <code>Game</code> class that went through every city, pulled out its population, then multiplied that by the tax rate. I had to copy and paste that code into the city view so that the player could click on a city and see exactly how much money it generated, but that was OK.</p>
+<p>When I let the player create buildings in cities to increase tax revenue, I had to modify my turn end loop: get population, multiply by tax rate, then modify by building improvements. Of course I had to copy that code into my city view calculation too, but that was only a few extra lines. Then I let players improve the squares around their cities, and some squares brought in more gold than others, so I added that to my turn end loop… but completely forgot to add it to the city view.</p>
+<p>You should be able to see why my approach was bad, and why encapsulation would have made it go away. Duplicating code is always bad, particularly because you need to remember all the places you've made duplication so you can update them all when you make a change – something you will inevitably get wrong. Once I realized my mistake, I switched tax calculation into a single <code>calculateTax()</code> method on my <code>City</code> class, and all the logic to calculate a city's gold was contained in just one place.</p>
+<p>Going back to the <code>Doctor</code> class, just creating an <code>assignToPatient()</code> method is insufficient to guarantee encapsulation, because other parts of your code are free to ignore the method and adjust the properties directly. Remember, that <code>assignToPatient()</code> method might contain all sorts of logic to validate whether the doctor could move, as well as other things such as updating their diary – we really need people to use it, rather than adjust <code>currentPatient</code> directly.</p>
+<p>This is where access modifies come in: you can tell Swift that only certain parts of your code can read or write properties or call methods. There are three access modifiers you can use:</p>
+<ul>
+<li><code>private</code> means &quot;this can only be used by code in the same file.&quot;</li>
+<li><code>internal</code> means &quot;this can only be used by code in my module&quot;, which is usually your app.</li>
+<li><code>public</code> means &quot;anyone can use this.&quot;</li>
+</ul>
+<p>Swift's definitions are different from other languages, and I suspect they will change in the future to be more closely aligned with what people expect. The main difference is <code>private</code>: in languages such as C++, <code>private</code> means &quot;only the object that owns this property or method can use it,&quot; but in Swift other code can touch a private property or method as long as it's written in the same file. Because playgrounds are just one big source file, this makes <code>private</code> useless in playgrounds. <code>internal</code> is mainly important when you're writing a framework, because it allows any of your code to use a property or method but any external code will be denied access.</p>
+<p>When working with private properties, you can make a property fully private just by using the <code>private</code> keyword, like this:</p>
+<pre>private var currentPatient = "Taylor Swift"</pre>
+<p>If you want everyone to be able to read the property but make writing it private, you should use <code>private(set)</code> instead:</p>
+<pre>private(set) var currentPatient = "Taylor Swift"</pre>
+<p>Once your properties are private, you need to introduce methods to read and write them, commonly called getters and setters. The rest of your app then manipulates your objects using these getters and setters, thus ensuring everyone uses the logic you set down in your methods.</p>
+<h3>Inheritance</h3>
+<p>The classes you define in your OOP app will frequently have common properties and methods, but naturally you don't want to duplicate code so instead you can use a technique called inheritance. This lets you create a new class based on an existing one, and it imports all the properties and methods as it goes. When you create a new class this way it's called a subclass, and the class you inherited from is called the super class. You'll also hear subclasses referred to as &quot;child&quot; classes, which makes the class you inherited from the &quot;parent&quot; class. You can inherit as many times as you want, so you can have grandparent classes and even great-grandparent classes, although those names are rarely used!</p>
+<p>Inheritance is another fundamental technique inside OOP, and it's endemic in Apple's systems. If you create a new iOS Single View Application in Xcode, you'll get a class called <code>ViewController</code> that inherits from <code>UIViewController</code>, but <code>UIViewController</code> itself inherits from <code>UIResponder</code>, which inherits from <code>NSObject</code>, which is the root class in Objective-C – the thing that all other classes must start with.</p>
+<p>Inheritance is useful because it lets you import huge amounts of functionality then add to it. For example, nowhere in the <code>ViewController</code> class does it say how to behave when the screen is rotated, or how to load a layout from a storyboard, but all that functionality is automatically brought in by inheriting from <code>UIViewController</code>.</p>
+<p>When you create class <code>Surgeon</code> by inheriting from class <code>Doctor</code>, you bring with it all of <code>Doctor</code>'s properties and methods, which might in turn bring in properties and methods from <code>Employee</code>, and so on. You can then add your own specific properties and methods to <code>Surgeon</code> to do things that doctors don't do, but you can also <em>override</em> existing behavior that came with the <code>Doctor</code> class – you can say &quot;don't do <em>that</em>, but do <em>this</em> instead.&quot;</p>
+<p>Overriding behavior is explicit in Swift, which is not the case in many other languages. To demonstrate this, let's make the <code>Doctor</code> and <code>Surgeon</code> classes:</p>
+<pre>class Doctor {
+    var name = "Gregory House"
+    var currentPatient = "Taylor Swift"
+}
+
+class Surgeon: Doctor { }</pre>
+<p>The <code>Doctor</code> class defines a couple of basic properties, and the <code>Surgeon</code> class inherits from <code>Doctor</code> so it gets those properties. This makes sense: everyone has a name regardless of whether they are doctors or surgeons. If we wanted to allow our surgeons to perform surgery, we could add a <code>performSurgery()</code> method to the surgeon class like this:</p>
+<pre>class Surgeon: Doctor {
+    func performSurgery(isEmergency emergency: Bool) {
+        if emergency {
+            print("OK, let's go!")
+        } else {
+            print("I'll do it next")
+        }
+    }
+}</pre>
+<p>So far, so easy. But if we need to allow doctors to perform surgery too, things get more complicated. Just adding <code>performSurgery()</code> method to the <code>Doctor</code> class is easy enough:</p>
+<pre>class Doctor {
+    var name = "Gregory House"
+    var currentPatient = "Taylor Swift"
+
+    func performSurgery(isEmergency emergency: Bool) {
+        if emergency {
+            print("OK, let's go!")
+        } else {
+            print("Please find a surgeon")
+        }
+    }
+}</pre>
+<p>However, now <code>Doctor</code> has a <code>performSurgery()</code> method which <code>Surgeon</code> inherits, then <code>Surgeon</code> declares its own <code>performSurgery()</code> method – Swift doesn't know which one to use, so it will refuse to compile. To fix the problem, you need to make your intention clear: either delete the surgeon's <code>performSurgery()</code> method (so that Swift will use the doctor's <code>performSurgery()</code> method), change the surgeon's method so that it has a different signature (e.g. <code>performSurgery()</code> rather than <code>performSurgery(isEmergency emergency: Bool)</code>), or tell Swift that the surgeon's method overrides the existing method from <code>Doctor</code>, like this:</p>
+<pre>class Surgeon: Doctor {
+    override func performSurgery(isEmergency emergency: Bool) {
+        if emergency {
+            print("OK, let's go!")
+        } else {
+            print("I'll do it next")
+        }
+    }
+}</pre>
+<p>Anything you don't override will be inherited from the parent class.</p>
+<h3>Super methods</h3>
+<p>As you've seen, when you inherit one class from another, you either use the parent class's methods or you override the ones you want to change in the child. There is a third way, which lets you use the existing functionality of a parent's method and add some custom tweaks in the child.</p>
+<p>Let's work up an example: our doctors have an <code>assignToPatient()</code> method like this:</p>
+<pre>func assignToPatient(name: String) {
+    currentPatient = name
+}</pre>
+<p>By default, that will be inherited by the <code>Surgeon</code> subclass, but we want to make surgeons do something special: when we call <code>assignToPatient()</code> on <code>Surgeon</code> we first want them to ask some junior doctors for a diagnosis so they have a chance to learn, <em>then</em> we want to call the existing <code>assignToPatient()</code> method on <code>Doctor</code>.</p>
+<p>Swift makes this easy using the <code>super</code> keyword, which works like <code>self</code> but for parent classes. If the <code>Surgeon</code> class overrides <code>assignToPatient()</code> to add its own functionality, it can at any time call <code>super.assignToPatient()</code> to have the code in the <code>Doctor</code> class execute. This means you don't need to duplicate any code: <code>Surgeon</code> handles the parts it cares about, then lets <code>Doctor</code> do the rest. In code, it looks like this:</p>
+<pre>class Surgeon: Doctor {
+    override func assignToPatient(name: String) {
+        getJuniorDoctorDiagnosis()
+
+        super.assignToPatient(name)
+    }
+
+    func getJuniorDoctorDiagnosis() -&gt; String {
+        return "He's dead, Jim"
+    }
+}</pre>
+<p>The only complication is when working with <code>init()</code>, which has some strict rules. Specifically:</p>
+<ul>
+<li>If you create a class using inheritance, you must call <code>super.init()</code> in the child class to allow the parent to construct itself.</li>
+<li>Your subclass must have initialized its own properties fully before calling <code>super.init()</code>.</li>
+<li>You can't touch properties from your parent class until you have called <code>super.init()</code>.</li>
+<li>You can't call any other methods until you have initialized all your properties, including calling <code>super.init()</code>.</li>
+</ul>
+<p>To illustrate the correct layout for initializing a subclass, here's a modified <code>Doctor</code> class with a simple initializer:</p>
+<pre>class Doctor {
+    var name: String
+    var currentPatient: String
+
+    init(name: String, currentPatient: String) {
+        self.name = name
+        self.currentPatient = currentPatient
+    }
+}</pre>
+<p>If <code>Surgeon</code> doesn't introduce any new properties of its own, it will use the existing <code>Doctor</code> initializer. To make things more interesting, let's allow surgeons to have their own title. A curiosity in the UK is that most doctors are referred to using the title &quot;Doctor&quot;, but the most senior ones – consultants – prefer to be referred to as Mr, Mrs, Miss, or Ms even though they are also fully qualified doctors. So if I were a regular doctor I'd be &quot;Dr Hudson,&quot; but if I were a consultant I would be &quot;Mr Hudson.&quot;</p>
+<p>Let's modify our <code>Surgeon</code> class to allow a custom title to be used, as they are senior doctors. Here's the code:</p>
+<pre>class Surgeon: Doctor {
+    var title: String
+
+    init(name: String, title: String, currentPatient: String) {
+        self.title = title
+        super.init(name: name, currentPatient: currentPatient)
+    }
+}</pre>
+<p>Notice that <code>self.title</code> gets initialized <em>before</em> <code>super.init()</code> gets called. If you try to put these two lines the other way around, Swift will refuse to build your code. If you try to adjust <code>self.name</code> before calling <code>super.init()</code>, Swift will refuse to build your code. If you remove <code>super.init()</code> or try to call any other methods before using <code>super.init()</code>, Swift will refuse to build your code – it's extremely strict!</p>
+<h3>Polymorphism</h3>
+<p>Polymorphism is a word pulled from two Greek words that mean &quot;many shapes&quot;, and in OOP it means an object can be used like its own class or any of the classes it inherits from. It's best explained using an example, so below is an array of <code>Doctor</code> objects that lists which doctors are available for work right now:</p>
+<pre>var availableDoctors = [Doctor]()
+availableDoctors.append(Doctor())
+availableDoctors.append(Doctor())
+availableDoctors.append(Doctor())</pre>
+<p>In that code, the <code>availableDoctors</code> variable is an array containing <code>Doctor</code> objects. But <code>Surgeon</code> inherits from <code>Doctor</code>, so as far as Swift is concerned it is a <code>Doctor</code> too. This means we can add surgeons to the array directly, like this:</p>
+<pre>var availableDoctors = [Doctor]()
+availableDoctors.append(Doctor())
+availableDoctors.append(Doctor())
+availableDoctors.append(Surgeon())
+availableDoctors.append(Doctor())</pre>
+<p>Swift knows this is safe, because <code>Surgeon</code> inherits from <code>Doctor</code> and so either inherits its properties and methods or overrides them. For example, we can loop over the array and call <code>performSurgery()</code> on each item, and Swift will call the correct version of <code>performSurgery()</code> depending on each object it finds:</p>
+<pre>for doctor in availableDoctors {
+    doctor.performSurgery(isEmergency: false)
+}</pre>
+<p>That will output the following:</p>
+<pre>Please find a surgeon
+Please find a surgeon
+I'll do it next
+Please find a surgeon</pre>
+<p>Polymorphism allows the <code>Surgeon</code> object to work simultaneously like a <code>Doctor</code> and like <code>Surgeon</code>: it can added to an array of doctors, but use the <code>Surgeon</code> version of <code>performSurgery()</code> thanks to a technique called dynamic dispatch. This would <em>not</em> work if we declared <code>availableDoctors</code> to have the data type <code>[Surgeon]</code> because you can't add a parent class (<code>Doctor</code>) to an array of the child class (<code>Surgeon</code>).</p>
+<h3>Final classes</h3>
+<p>It can be really helpful to inherit from a class and modify the way it works, particularly because it lets you build complex objects quickly. However, some classes need to work a specific way, and it might be confusing and/or risky to modify that behavior. For example, if you created a banking framework that others could integrate into their apps, would you really want to let them subclass your types and modify the way they worked? Probably not!</p>
+<p>Swift lets you mark classes using the <code>final</code> keyword, which means &quot;don't let anyone subclass this.&quot; So, this code will not compile:</p>
+<pre>final class Doctor { }
+class Surgeon: Doctor { }</pre>
+<p>You can also mark individual properties and methods if you want, which allows someone to inherit from your class but not modify specific parts of it.</p>
+<p>Because of the way Swift is built, there is a potential performance benefit to declaring things as <code>final</code>. Unless you enable whole module optimization, Swift needs to perform extra checks before making a method call because it needs to check whether it has been overridden somewhere else. Marking properties, methods, or even whole classes as <code>final</code> eliminates this check, so your code will run a little faster.</p>
+<p>Unless you have specifically designed your class to be inheritable, you should mark it <code>final</code>.</p>
+<h3>Class properties and methods</h3>
+<p>Sometimes you will want to create properties and methods that belong to a class rather than an object. The difference might seem subtle, but it's important: a regular property or method belongs to an instance of the <code>Doctor</code> class, e.g. Gregory House, whereas a class property or method is shared across all doctors.</p>
+<p>For example, you might create a method that recites the Hippocratic oath – a medical promise that many physicians take when they graduate medical school. This oath is the same for all doctors, so instead we can create a single method that can be called directly on the <code>Doctor</code> class. To do this, just write <code>static</code> before your method, like this:</p>
+<pre>class Doctor {
+    static func quoteHippocraticOath() {
+        print("I will prevent disease whenever I can, for prevention is preferable to cure.")
+    }
+}
+
+Doctor.quoteHippocraticOath()</pre>
+<p>When you use <code>static func</code>, you're making a class method that also happens to be <code>final</code>. If you want to allow subclasses to override the method, you can use <code>class func</code> instead of <code>static func</code>.</p>
+<p>Static properties are also possible, and again just require the <code>static</code> keyword:</p>
+<pre>static let latinTitle = "Medicinae Doctor"</pre>
+<h3>is-a vs has-a</h3>
+<p>Protocol-oriented programmers sometimes like to think they have a monopoly on composition, which isn't true: many OOP developers have been encouraging composition rather than inheritance for some time, although it's fair to say the uptake has been patchy.</p>
+<p>In OOP, the contrast between inheritance and composition is often called &quot;is-a vs has-a&quot;. A surgeon <em>is a</em> doctor, so it makes sense to inherit <code>Surgeon</code> from <code>Doctor</code>. A surgeon <em>has a</em> scalpel, which means the <code>Surgeon</code> class could have a property called <code>scalpel</code>, but it would be strange if <code>Surgeon</code> inherited from <code>Knife</code>.</p>
+<p>In the unlikely event you find yourself unsure whether to create a new class using inheritance or by adding a property, try using the &quot;is-a / has-a&quot; comparison and see if it helps.</p><h2>Protocol-oriented programming</h2>
+<p>Swift 2.0 introduced some major changes to the way protocols work, and in doing so introduced a new way to build software dubbed protocol-oriented programming (POP). It is not entirely new – far from it! – and indeed builds upon Swift techniques you should already be familiar with: protocols, extensions, value types, and more. This means Swift blends OOP, POP, and functional approaches all in a single language, so it has something for everyone.</p>
+<p>POP uses nearly all the same tools you would use with OOP, so you should already have a sound understanding of OOP to continue. It follows the same principles of encapsulation and polymorphism from OOP, but it does away with inheritance. Instead, POP encourages you to build your app architecture horizontally rather than vertically: you add functionality by adopting protocols rather than inheriting from parent classes. A large part of the approach comes through the protocol extension syntax introduced in Swift 2.0, which lets you add functionality in smart, focused ways.</p>
+<p>Protocol extensions combine two previous technologies, which are – surprise! – protocols and extensions. A protocol is a promise of functionality: the compiler will ensure that anyone who wants to conform to the protocol must implement all the methods you specify. For example, we could create an <code>Payable</code> protocol that requires a <code>calculateWages()</code> method to be implemented in any conforming data type:</p>
+<pre>protocol Payable {
+    func calculateWages() -&gt; Int
+}</pre>
+<p>When an object adopts a protocol like <code>Payable</code>, it means you can call <code>calculateWages()</code> on it and expect to get an integer back. What the actual method does internally is an implementation detail, but that's not a bad thing: it means you can use any data type that conforms to <code>Payable</code> without wondering about what their code does, as long as they stick to the API contract – as long as they implement <code>calculateWages()</code> with the specified type signature.</p>
+<p>Extensions allow you to add functionality to specific types. For example, you can add a <code>squared()</code> method to integers like this:</p>
+<pre>extension Int {
+    func squared() -&gt; Int {
+        return self * self
+    }
+}</pre>
+<p>That will then apply to all <code>Int</code> values, so you can call it like this:</p>
+<pre>let number: Int = 5
+let result = number.squared()</pre>
+<p>Protocols have the disadvantage that they contain only declarations of methods; if you try to include any functionality in a protocol, the compiler will refuse to build your code. Extensions <em>can</em> add functionality, but they only apply to specific data types – we just extended <code>Int</code>, but not any of the other integer types. So code like this won't work because it uses a <code>UInt</code> rather than an <code>Int</code>:</p>
+<pre>let number: UInt = 5
+let result = number.squared()</pre>
+<p>Protocol extensions combine the two: they let you provide complete default implementations for functions in the same way as extensions, but apply at the protocol level rather than the individual data type level. So, we could extend <em>all</em> integers to add a <code>squared()</code> method like this:</p>
+<pre>extension IntegerType {
+    func squared() -&gt; Self {
+        return self * self
+    }
+}</pre>
+<p>These implementations are <em>default</em> implementations, which means they exist as standard but can be overridden if you need. Note that <code>squared()</code> returns <code>Self</code> with a capital S: this means &quot;return whatever data type I'm being used with.&quot;</p>
+<h3>Protocol extensions in detail</h3>
+<p>Protocol extensions let us add functionality to whole classes of data types, either by creating new protocols and extensions, or just by adding a protocol to an existing type. But it does have a few complexities that you must be aware of before starting, so let's get them out of the way now.</p>
+<p>First, if you're creating a new protocol you need to separate creating the protocol and adding functionality. For example, if we wanted to create an <code>Payable</code> protocol that had a default implementation of the <code>calculateWages()</code> method, we would need to create the protocol then separately extend it, like this:</p>
+<pre>protocol Payable {
+    func calculateWages() -&gt; Int
+}
+
+extension Payable {
+    func calculateWages() -&gt; Int {
+        return 10000
+    }
+}</pre>
+<p>Second, Objective-C is not aware of any protocol extensions you build, which means you can't create extensions for UIKit protocols like <code>UITableViewDataSource</code> and expect them to work. To be more specific, you're welcome to <em>create</em> the extensions, but UIKit won't be able to see them – they'll have no practical effect.</p>
+<p>It also means that if you create any <code>@objc</code> protocols your extensions will be ignored by Swift too. For example, in the code below the extension is ignored:</p>
+<pre>@objc protocol Payable {
+    func calculateWages() -&gt; Int
+}
+
+extension Payable {
+    func calculateWages() -&gt; Int {
+        return 10000
+    }
+}</pre>
+<p>Third, this separation of declaration (listing the type signature in the protocol) and the definition (writing the actual code in the extension) has meaning: if you do things slightly differently, your code will behave differently and perhaps even unexpectedly. Consider the code below, which creates an <code>Payable</code> protocol and extends it to provide a default implementation of the <code>calculateWages()</code> method:</p>
+<pre>protocol Payable {
+    func calculateWages() -&gt; Int
+}
+
+extension Payable {
+    func calculateWages() -&gt; Int {
+        return 10000
+    }
+}</pre>
+<p>To test that out, we can create an empty <code>Surgeon</code> struct, then extend it so that it uses our <code>Payable</code> protocol, like this:</p>
+<pre>struct Surgeon { }
+
+extension Surgeon: Payable { }</pre>
+<p>Just doing that is enough for surgeons to have the <code>calculateWages()</code> method – we retroactively declare that the <code>Surgeon</code> struct builds on the <code>Payable</code> protocol, and don't need to add any custom code to get all the <code>Payable</code> functionality for free. So this will print out &quot;10000&quot;:</p>
+<pre>let gregory = Surgeon()
+gregory.calculateWages()</pre>
+<p>Remember, the <code>calculateWages()</code> method we added to <code>Payable</code> is just a default implementation, so any conforming data type can write its own version that does something different, like this:</p>
+<pre>extension Surgeon: Payable {
+    func calculateWages() -&gt; Int {
+        return 20000
+    }
+}</pre>
+<p>Here is where things get complicated: when you list a method in your protocol, you're making it available as a customizaton point for people who want to write their own implementations. If you <em>don't</em> list a method in your protocol, but <em>do</em> provide a default implementation, that implementation might be used even if it has been overridden later on. What matters is the data type you're using. Yes, this is confusing, but I hope the code below will explain:</p>
+<pre>protocol Payable {
+    // func calculateWages() -&gt; Int
+}
+
+extension Payable {
+    func calculateWages() -&gt; Int {
+        return 10000
+    }
+}
+
+struct Surgeon { }
+
+extension Surgeon: Payable {
+    func calculateWages() -&gt; Int {
+        return 20000
+    }
+}
+
+let gregory = Surgeon()
+gregory.calculateWages()
+
+let doogie: Payable = Surgeon()
+doogie.calculateWages()</pre>
+<p>The protocol is empty because I commented out its declaration of <code>calculateWages()</code>. There's a default implementation provided for this in the <code>Payable</code> extension, and another implementation inside the <code>Surgeon</code> extension. They both return different values: regular employees get paid 10000, but surgeons get paid 20000.</p>
+<p>Take a look at the last four lines, because they print different things: even though both <code>gregory</code> and <code>doogie</code> are instances of the <code>Surgeon</code> struct, <code>doogie</code> is being stored as an <code>Payable</code>. This is polymorphism, but it <em>matters</em>: when there is no protocol declaration of a method, Swift will decide which method to call based on the data type it sees. In this case, <code>gregory</code> will use the <code>calculateWages()</code> method of <code>Surgeon</code>, whereas <code>doogie</code> will use the method of <code>Payable</code>. If you uncomment the <code>calculateWages()</code> declaration in the <code>Payable</code> protocol, both <code>gregory</code> and <code>doogie</code> will get paid the same.</p>
+<p>So, including a method in a protocol declaration is the signal to Swift that we want to allow any default implementation to be overridden in the situation when we refer to an instance by one of its protocols rather than its specific type.</p>
+<p><strong>My advice:</strong> until you're comfortable with this distinction, always declare your methods in your protocols.</p>
+<h3>Thinking horizontally</h3>
+<p>Now that you understand how protocol extensions work, let's look at protocol-oriented programming itself. I said that &quot;POP encourages you to build your app architecture horizontally rather than vertically,&quot; and this is really the fundamental difference between OOP and POP. &quot;Vertical architecture&quot; is inheritance: creating a base class, then adding functionality through subclassing until you get to your most specific data types. &quot;Horizontal architecture&quot; is using whichever protocols make sense to add specific pieces of functionality.</p>
+<p>POP still allows you to use inheritance if you want to, but it's likely you won't need it. As a result, POP developers usually rely on structs rather than classes, which brings its own set of benefits. When working with inheritance, you can inherit from exactly one superclass, and doing so brings with it all the properties and methods of that superclass whether or not you need them. When you switch to protocols, you can adopt as many protocols as you need, and each one can add one or more methods that provide particular functionality.</p>
+<p>This is a huge difference: rather than your superclasses dictating what methods their child classes will receive – a process that could easily result in complex, fragile hierarchies – the <em>child</em> classes dictate what functionality they want to bring in by selectively adding the protocols they want. Does your <code>Surgeon</code> class need to inherit from <code>Doctor</code>, which itself inherits from <code>Payable</code>, just to get paid? With POP, all you need to do is add a <code>Payable</code> protocol that <code>Surgeon</code> conforms to, and you get all the functionality immediately. In Swift, the advantage of POP is extended even further, because protocols can be adopted by enums as well as classes and structs, so you can share functionality wherever it's needed.</p>
+<p>If you're an experienced developer, POP might sound like multiple inheritance – a technique that let you create classes by inheriting from more than one thing at a time, thus creating monsters like <code>Pegasus</code> by inheriting from the classes <code>Horse</code> and <code>Bird</code> at the same time. There is a subtle difference: protocols let you add only methods and computed properties, not stored properties. This means they can never add more <em>state</em> to your data types, so they keep complexity low.</p>
+<p>Splitting up your functionality into distinct logical components conveys two further benefits. First, your code becomes significantly more testable: when each protocol handles one specific behavior (e.g. validating user input), you can write tests for that behavior and be confident that you have 100% coverage. Second, you can easily change your mind about your architecture long after you designed it just by adjusting the protocols you're using – it's significantly easier than trying to change class <code>C</code> when you know that <code>D</code>, <code>E</code>, <code>F</code>, and <code>G</code> all inherit from it.</p>
+<h3>POP in practice</h3>
+<p>At this point you should understand the core tenets of OOP – most of which apply in POP – as well as how protocol definitions work and why horizontal architecture is important. Now it's time to look at a specific example of POP in action; I'm going to define six protocols with accompanying extensions. To keep things simple, I'm only going to give each protocol a single method. Here's the code:</p>
+<pre>protocol Payable {
+    func calculateWages() -&gt; Int
+}
+
+extension Payable {
+    func calculateWages() -&gt; Int {
+        return 10000
+    }
+}
+
+protocol ProvidesTreatment {
+    func treat(name: String)
+}
+
+extension ProvidesTreatment {
+    func treat(name: String) {
+        print("I have treated \(name)")
+    }
+}
+
+protocol ProvidesDiagnosis {
+    func diagnose() -&gt; String
+}
+
+extension ProvidesDiagnosis {
+    func diagnose() -&gt; String {
+        return "He's dead, Jim"
+    }
+}
+
+protocol ConductsSurgery {
+    func performSurgery()
+}
+
+extension ConductsSurgery {
+    func performSurgery() {
+        print("Success!")
+    }
+}
+
+protocol HasRestTime {
+    func takeBreak()
+}
+
+extension HasRestTime {
+    func takeBreak() {
+        print("Time to watch TV")
+    }
+}
+
+protocol NeedsTraining {
+    func study()
+}
+
+extension NeedsTraining {
+    func study() {
+        print("I'm reading a book")
+    }
+}</pre>
+<p>Those six protocols give us enough data to start modeling some staff members in a hospital. Specifically, we're going to define four roles: receptionist, nurse, doctor, and surgeon. In a real hospital the lines between these roles aren't black and white – roles like nurse practitioner exist that can diagnose and prescribe treatment, for example – but I'm trying to keep it simple.</p>
+<p>So, with the protocols in place, we can create four structs:</p>
+<pre>struct Receptionist { }
+struct Nurse { }
+struct Doctor { }
+struct Surgeon { }</pre>
+<p>And now for the best bit: to give those roles the functionality we defined in our protocols, we just need to decide who should get what. We don't need to create an inheritance tree – we just need to pick which protocols each role needs. For example, the <code>Receptionist</code> role should probably adopt the protocols <code>Payable</code>, <code>HasRestTime</code>, and <code>NeedsTraining</code>, like this:</p>
+<pre>extension Receptionist: Payable, HasRestTime, NeedsTraining {}</pre>
+<p>The <code>Nurse</code> role needs the same roles as <code>Receptionist</code> as well as <code>ProvidesTreatment</code>:</p>
+<pre>extension Nurse: Payable, HasRestTime, NeedsTraining, ProvidesTreatment {}</pre>
+<p>The <code>Doctor</code> role needs the same roles as <code>Nurse</code> with the addition of <code>ProvidesDiagnosis</code> because they can diagnose as well as treat:</p>
+<pre>extension Doctor: Payable, HasRestTime, NeedsTraining, ProvidesTreatment, ProvidesDiagnosis {}</pre>
+<p>The <code>Surgeon</code> role is a little different: the surgeons in our example hospital won't provide treatment (they have junior doctors to do that), but they can provide diagnosis as well as conduct surgery. So, they look like this:</p>
+<pre>extension Surgeon: Payable, HasRestTime, NeedsTraining, ProvidesDiagnosis, ConductsSurgery {}</pre>
+<p>That completes our line up. Notice how we can be really specific about what each role needs, rather than try to craft a hierarchy? If we had made <code>Surgeon</code> inherit from <code>Doctor</code> it would have been given the ability to provide treatment as part of that inheritance, and we would need to override that functionality to try to opt out.</p>
+<p>However, our current solution is a bit messy: all staff members adopt the protocols <code>Payable</code>, <code>HasRestTime</code>, and <code>NeedsTraining</code>, so there's a lot of duplication right now. To make things easier to read, we can create a new <code>Employee</code> protocol that groups together <code>Payable</code>, <code>HasRestTime</code>, and <code>NeedsTraining</code>, then make our four roles adopt <code>Employee</code> rather than the individual protocols. In code, it looks like this:</p>
+<pre>protocol Employee: Payable, HasRestTime, NeedsTraining {}
+
+extension Receptionist: Employee {}
+extension Nurse: Employee, ProvidesTreatment {}
+extension Doctor: Employee, ProvidesDiagnosis, ProvidesTreatment {}
+extension Surgeon: Employee, ProvidesDiagnosis, ConductsSurgery {}</pre>
+<p>Apple' advice for POP is this: &quot;don't start with a class, start with a protocol.&quot; And that's exactly what we've done here: we started by defining the various behaviors we wanted to represent in our app, then created structs that adopted those behaviors to bring it all to life.</p>
+<h3>Constrained extensions</h3>
+<p>We've already seen how we can extend a protocol to add new functionality. For example, we could add a <code>checkInsurance()</code> method to all roles that adopt the <code>Employee</code> protocol, like this:</p>
+<pre>extension Employee {
+    func checkInsurance() {
+        print("Yup, I'm totally insured")
+    }
+}</pre>
+<p>But that's a pretty big change to make, and it brings back the same problem that inheritance gave us: everyone gets this method whether they want it or not. Sometimes this just adds extra unnecessary complexity, but other times it will stop your code from building because the method you want to add doesn't work on every <code>Employee</code>.</p>
+<p>Swift's solution to this problem is called constrained extensions, and allows us to specify that an extension applies only to certain kinds of protocols. In our current instance, we only need staff to have insurance if they provide treatment, so we can rewrite the above code like this:</p>
+<pre>extension Employee where Self: ProvidesTreatment {
+    func checkInsurance() {
+        print("Yup, I'm totally insured")
+    }
+}</pre>
+<p>Using this approach, employees that don't provide treatment, or people who provide treatment that aren't employees (e.g. a doctor who is on loan from another hospital to cover vacation time), won't be given the <code>checkInsurance()</code> method.</p>
+<p>Things get more complicated when you want to handle sub-types of data, for example if you want to target any kind of collection that stores strings. To make this work, you need to specify a <code>where</code> clause to filter by <code>Generator.Element</code> where the element type matches something specific. You can use <code>Generator.Element</code> inside the method as a placeholder for the matching data type, or you can use specific data types if you prefer.</p>
+<p>For example, the extension below targets collections that store integers, and adds the ability to count how many odd and even numbers are in the collection:</p>
+<pre>extension CollectionType where Generator.Element: IntegerType {
+    func countOddEven() -&gt; (odd: Int, even: Int) {
+        var even = 0
+        var odd = 0
+
+        for val in self {
+            if val % 2 == 0 {
+                even += 1
+            } else {
+                odd += 1
+            }
+        }
+
+        return (odd: odd, even: even)
+    }
+}</pre>
+<h3>POP vs OOP</h3>
+<p>As I've said a couple of times now, POP is a fresh take on OOP rather than a wholly new way of writing software. This makes it easy to learn and easy to transition to, because you do it bit by bit rather than having to undertake a massive rewrite. You can also carry on using industry-standard techniques such as encapsulation and polymorphism, and the extra emphasis on structs rather than classes gives you yet another reason to move to value types.</p>
+<p>Honestly, I think it's almost no contest: once you understand how POP works, and you get started with protocol extensions, you'll quickly see benefits in code simplicity, testability, reusability, and lots other -ities that will help you deliver software more efficiently.</p>
+<p>The one time where the rump of OOP remains - objects and inheritance – is likely dealing with UIKit, where subclassing things like <code>UIViewController</code> and <code>UIView</code> is the standard, and this is unlikely to change in the near future. Remember, though, that classes can adopt protocol extensions too, so you could easily create a protocol for input validation, a protocol for network requests, a protocol for loading and saving settings, and more – even taking a few small chunks out of your view controller and into protocols will immediately help reduce the size of your view controllers.</p><h2>MVC</h2>
+<p>MVC – Model, View, Controller – is the standard approach for building software on iOS. Although it has its fair share of drawbacks, it is easy to learn and so endemic to iOS development that you're never far from a dozen or more code examples for any given topic.</p>
+<p>In MVC, every component in your app is one of three things: a Model (something that describes your data), a View (something that describes your layout), or a Controller (the glue that brings model and view together into a working app). The concept might seem simple enough, but it's made complicated by the fact that iOS blends views and controllers into &quot;view controllers&quot;, and also because some things – e.g. code to access the network – don't really fit into M, V, or C.</p>
+<p>Let's keep it simple for now, and explore each component of MVC in more detail.</p>
+<h3>Models</h3>
+<p>Models provide storage for your data, as well as any business logic such as validation. Sometimes it can handle transforming its data into something more useful, for example translating a date into a specific format. It should <em>not</em> be responsible for rendering that to the screen, so if you see code like this you know someone needs to brush up on their MVC:</p>
+<pre>struct Person {
+    var name = "Taylor Swift"
+    var age = 26
+
+    func render() {
+        // drawing code here
+    }
+}</pre>
+<p>In the ideal world, models communicate only with controllers.</p>
+<h3>Views</h3>
+<p>A component is considered a View if it is responsible for rendering your user interface, so that's buttons, images, table views, and more. UIKit labels some of these with the suffix &quot;View&quot;, but it's not consistent: <code>UIView</code>, <code>UITableView</code>, <code>UITextView</code> are all good, but <code>UIButton</code>, <code>UISwitch</code>, and <code>UILabel</code> all skip the &quot;View&quot; moniker despite all being views.</p>
+<p>Views are designed to be dumb renderers of content, which is why button taps and text view events are usually handled by a controller. But in practice you'll often find views do far more – I've seen networking code, input validation, and even connections straight to model data stored inside views. In the ideal world, views communicate only with controllers.</p>
+<h3>Controllers</h3>
+<p>Because models are mostly static data and views are mostly dumb renderers, it falls to controllers to hold everything together in a coherent application. This puts a lot of pressure on one component in the system, so it's common to have apps where the overwhelming majority of code lies with controllers. </p>
+<p>On iOS, controllers and views get partly blended into one super-sized component called view controllers, which are responsible for large amounts of system events above and beyond whatever code you might want to write yourself.</p>
+<p>To give you an idea of just how big view controllers are, consider this: they handle all view lifecycle events (<code>viewDidLoad()</code>, <code>viewWillAppear()</code>, <code>viewDidAppear()</code>, <code>viewWillDisappear()</code>, <code>viewDidDisappear()</code>, <code>viewWillLayoutSubviews()</code>), memory warnings (<code>didReceiveMemoryWarning()</code>), moving to and from other view controllers (<code>performSegueWithIdentifier()</code>, <code>prepareForSegue()</code>, <code>presentViewController()</code>, <code>dismissViewControllerAnimated()</code>, <code>modalTransitionStyle()</code>), layout adjustments (<code>edgesForExtendedLayout()</code>, <code>automaticallyAdjustsScrollViewInsets()</code>, <code>preferredStatusBarStyle()</code>, <code>supportedInterfaceOrientations()</code>), child view controllers (<code>addChildViewController()</code>), restoration (<code>restorationIdentifier</code>), and even keyboard shortcuts (<code>addKeyCommand()</code>) – and that's before you write any of your own code!</p>
+<p>So, it's no surprise that some people believe MVC stands for &quot;Massive View Controller&quot; – a topic I'll get onto soon.</p>
+<p>Unhelpfully, some developers get carried away with adding code to their controllers that could really be in their models or views.</p>
+<p>Controllers are designed to pull data from models and render it into views, then read user input on their views and save changes back to the model. As a result, they need access to the views and the models.</p>
+<h3>Fat controllers</h3>
+<p>Just looking at the long list of methods that you can override on view controllers, as well as remembering that it's also job is to bring models and views together, it's no wonder that many view controllers end up become Fat Controllers: over-sized, disorganized, untestable mishmashes of layout, logic, and lifecycle. I don't claim to be innocent of this crime, and have written my own share of Fat Controllers in the past, but that's OK. After all, the first step to solving a problem is admitting it exists!</p>
+<p>(If you were wondering, the name &quot;Fat Controller&quot; comes from the Thomas the Tank Engine books, although I believe the character's official name was &quot;Sir Topham Hatt&quot;.)</p>
+<p>If you think you're suffering from Fat Controller Syndrome, here are my top tips to helping you refactor your code into something more sensible. Trust me, it's worth it: your code wil be easier to understand, easier to maintain, and easier to test.</p>
+<h3>Create delegate objects</h3>
+<p>Any non-trivial app will need to work with a range of protocols: <code>UITableViewDelegate</code> and <code>UITableViewDataSource</code> are the most common, but <code>UICollectionViewDataSource</code>, <code>UIScrollViewDelegate</code>, <code>UIImagePickerControllerDelegate</code> and more are also popular. These all have vital parts to play in app development, but all too often they get thrust into view controllers so that they all get handled simultaneously. A telltale sign that you suffer from this problem is if you write <code>someObject.delegate = self</code> entirely with muscle memory: why should <code>self</code> be the delegate for pretty much everything?</p>
+<p>It doesn't need to be this way. Your table view data source - the bit that must provides <code>numberOfRowsInSection</code> and so on, doesn't need to be inside your view controller. Instead, you can create a custom class that provides these methods based on a data source you provide. Your controller holds a reference to the data source object, then assigns it to be the delegate for your table view. This can easily move a hundred or more lines out of your view controller and into a separate class – a class that you can now write tests for, because it has decoupled your business logic from your presentation logic.</p>
+<h3>Push rendering to your views</h3>
+<p>If you set up lots of Auto Layout rules in <code>viewDidLoad()</code>, if you do custom work in <code>viewDidLayoutSubviews()</code>, if your <code>cellForRowAtIndexPath</code> creates custom cells, then you can spin all that off into custom <code>UIView</code> subclasses to handle specific pieces of work. I'm not suggesting you push it all into storyboards because I realize some people have a pathological hatred of Interface Builder, but you can still do your UI work in code without storing it all in your controller.</p>
+<h3>Push logic and formatting into your model</h3>
+<p>If your controller has lots of code to format data from your model ready for display, you could easily push that into your model where it makes more sense. If your model has specific data requirements, validation methods for those requirements can be right there in your model rather than in your controller. Users of Core Data will be familiar with this approach, and it can help encapsulate your validation when done judiciously.</p>
+<p>For the sake of balance, I should add that this one is really easy to screw up: any logic you add to your model should be ruthlessly focused on the data inside that model. Try to avoid adding code that produces effects – your model ought to be inert if possible.</p>
+<h3>Switch to MVVM</h3>
+<p>This is the most drastic of all changes here, and it's a chance you need to weigh up carefully because MVVM doesn't benefit everyone. That being said, if you answer &quot;none&quot; to the question &quot;how many tests have you written for your view controllers?&quot; then I think it's time for radical action. MVVM is covered in more detail in the next chapter, but the TL;DR version is this: MVVM keeps your model and views slim by pushing validation and formatting out from your view controller into a new object, the View Model.</p>
+<h3>Is MVC dying?</h3>
+<p>No. Really, no. It's true that MVVM is picking up traction, but that's just a specialized form of MVC and many would argue that it really needs something like ReactiveCocoa to live up to its full potential. If you use my tips above to their fullest, you should be able to tame your fat controllers and in doing so give MVC a fresh lease of life for your app. Trust me on this: for as long as Apple recommends using MVC – which they still do – it will continue to be the standard.</p><h2>MVVM</h2>
+<p>No one denies that MVC – Model, View, Controller – is the standard approach for developing apps using Swift, but that doesn't mean it's perfect. Far from it: MVC stands for &quot;Massive View Controller&quot; if you ask some people, largely because you end up dumping large amounts of code into your view controllers that really ought to go somewhere else. But where?</p>
+<p>MVVM – Model, View, ViewModel – is an alternative approach to MVC, but it's actually quite similar. In fact, the best way to think about MVVM is like this: it's just like MVC except you create a new class, the ViewModel, that is responsible for converting data from your model into formatted values for your views.</p>
+<p>MVVM was designed by Microsoft for a platform that has data bindings in its user interface, which means the UI can talk directly to the ViewModel to display data and render updates as they come in. OS X has similar functionality, but iOS does not, so MVVM is an imperfect fit in its purest sense. Instead, we have something like &quot;Model, View, View Controller, ViewModel&quot;, which is made even more confusing by the fact that iOS blurs the lines between View and View Controller. The end result is that view controllers still exist in MVVM for Swift developers, but in a much simplified form.</p>
+<p>If you're not sure whether this chapter is worth reading, try a little experiment: pick one of your most important view controllers, and see how many protocols it conforms to. If the answer is &quot;more than two,&quot; chances are you're the victim of Fat Controllers and are likely to benefit from MVVM. What you're look for is orthogonal code, which is when one piece of code does two vastly different things. For example, if one controller handles reading and writing from the database as well as manipulating views, those two things could and perhaps even <em>should</em> be pulled apart.</p>
+<p>Note: when I've taught MVVM previously, I sometimes see two extreme reactions. First, &quot;this just changes a view controller into a view model, where's the point?&quot; and &quot;this is going to solve all my fat controller problems.&quot; Neither of those is true: MVVM is one facet of a larger strategy to tame view controllers, specifically handling presentation logic. You should still consider creating other data types to handle things like delegates and data sources.</p>
+<p>Once you understand MVVM you'll see that it's really just an enhanced form of MVC, where presentation logic is decomposed into a new object. That's it – it's not too complicated. Yes, there is some complexity around data bindings, but we'll come onto that soon.</p>
+<h3>View models</h3>
+<p>Models and views in MVVM are identical to those in MVC, so aren't worth covering in detail. Instead, let's focus on the two aspects that people find confusing about MVVM: what are view models, and where do view controllers fit in?</p>
+<p>First, view models. This is a wholly new role in your application, and is responsible for reading data from your model and translating it into a form that can be used by your views. For example, your model might store a date in <code>NSDate</code> format, but your user interface wants to receive that in a formatted string, so it's the job of the view model to translate that date into a string. Similarly, you might allow users to change the date for an event, so you might add a method to your view model that accepts a string date, converts it to an <code>NSDate</code>, then updates the model.</p>
+<p>This is all code that traditionally lives in the view controller, but view controllers are notoriously hard to test. Once you transfer this logic into view models, there's no UI attached to it: there is just data in and data out, so the unit tests almost write themselves. This approach also limits who can access your model, because in MVVM only the view model can read and write to the model – the views talk only to the view model, and the view controllers (still a necessity!) must also use the view model.</p>
+<p>Having all your data manipulation and formatting inside a view model is a big win for encapsulation and testing, but it's also helpful for flexibility: if you want to change the way your UI looks across devices, or across languages, or across user settings, you can have multiple view models that draw on the same model. As long as the API is the same – i.e., the methods and properties you surface to consumers of your view model – no other code needs to change.</p>
+<p>Second, view controllers. MVVM was built for .NET, which has built-in data bindings for its user interface. That means you can tie the contents of a label into a specific data value, and when the data value changes the label updates. This has no equivalent on iOS, but we do use similar things: delegation, key-value observing (KVO) and even <code>NSNotificationCenter</code> all attempt to solve the problem, albeit each with their own drawbacks. It is no coincidence that the biggest fans of MVVM also happen to use ReactiveCocoa, but that's a separate book entirely!</p>
+<p>When you switch to MVVM, VCs are effectively left with the job of displaying the user interface and responding to user interaction. Animations, event handlers, and outlets from Interface Builder are all sensible things for view controllers.</p>
+<h3>The role of view controllers</h3>
+<p>View controllers are a mish-mash of two things – the clue is right there in the name! – but more often than not they become a dumping ground for all sorts of code in your apps. When you switch to MVVM, you're carving a huge chunk out of view controller, and moving it into the view model. This does inevitably mean a slight increase in total amount of code, but also means your project's structure is simpler.</p>
+<p>View controllers still have an important part to play in MVVM, at least on iOS. However, they become much more true to their name: they are there to control views, and nothing more. That means they interact with UIKit: pushing and popping things with a navigation controller, responding to button presses, showing alerts, and more, should form the vast majority of what your view controllers do. The remainder is setting up your <code>@IBOutlet</code>s and mapping data from the model view to user interface components.</p>
+<p>What this means is that all business logic – the hard, &quot;what state is my data in?&quot; work – must <em>not</em> be stored in your view controllers. Instead, your view controller sends and receives data from the view model, and updates its UI appropriately. You have to admit, the promise of being able to test all your business logic without fighting with view controllers is appealing!</p>
+<h3>Benefits of MVVM</h3>
+<p>The biggest benefit of MVVM is that it decomposes your user interface into two parts: preparing your model data for preparation, and updating your UI with that data. Even with the latest, greatest XCTest tools to hand, UI testing can be a really unpleasant business. By taking all the presentation logic out of the view controller, MVVM dramatically increases testability: you can send it example model data and ensure you get the correct transformed data back, ready to be placed into a label. And because view controllers end up being fairly slim, the view controller testing you need to do has become substantially less.</p>
+<p>Separating layout and logic also carries with it increased flexibility for user interface design. With a traditional MVC approach, the layout of your data – e.g. updating a label – and the presentation logic for that data – e.g. making it an uppercase string that combines a date and subtitle from a model object – is so intertwined that it becomes non-trivial to redesign your user interface. Lengthy <code>cellForRowAtIndexPath</code> methods are usually a code smell.</p>
+<p>As I said already, you can also create more than one view model for each model depending on your needs. For example, you could create a &quot;simple&quot; view model that shows only the most important highlights, and a &quot;detailed&quot; view model that adds more data for users to read – as far as your model, view, and view controller is concerned, nothing needs to change.</p>
+<p>The combination of the above makes MVVM a valuable – if somewhat invasive – approach to reducing the complexity of fat controllers. The nature of MVVM as a more refined form of MVC makes it something you can migrate to slowly: it's completely compatible with MVC, so you can start by converting one controller at a time, rather than diving into a month of refactoring.</p>
+<h3>Disadvantages of MVVM</h3>
+<p>Treating MVVM like a silver bullet for fat controller syndrome is likely to cause you to repeat your mistakes: moving 90% of the complexity from your view controllers into a view model doesn't help anyone. Instead, I would argue that MVVM gives you a template for decomposing presentation logic that you can then re-use when it comes to networking logic, persistence logic, theming logic, and more. If you treat your view model as a dumping ground for miscellaneous code that doesn't fit anywhere else, you haven't gained a great deal.</p>
+<p>Another disadvantage of MVVM is that it forces you to write more code. This is unavoidably true, and a side effect of creating an extra layer of abstraction. To be fair, the more code you have in your project, the less the code increase caused by MVVM will matter – to the point where it's effectively a rounding error. In the fact of dramatically improved testability and a clearer separation of concerns, code size ought not to be an issue. For simpler projects, though, it's a different story: the <a href="https://blogs.msdn.microsoft.com/johngossman/2006/03/04/advantages-and-disadvantages-of-m-v-vm/">creator of MVVM said</a> &quot;for simple UI, MVVM can be overkill,&quot; so I would suggest weighing up the benefits as you go.</p>
+<p>On a more personal note, I think MVVM users can get themselves into a mess when they start to add behavior to their view models. I already said that pushing complexity from a view controller to a view model won't gain you much, but this is a step further: as soon as you start making your view models do more than transform data from your model, you're just adding complexity where it doesn't belong. Taking another quote from the creator of MVVM, &quot;the view model, though it sounds View-ish is really more Model-ish&quot; – treat your view model as a transformer of data, rather than something that acts upon that data, and you'll be fine.</p>
+<h3>MVC vs MVVM</h3>
+<p>I'm putting this chapter title here not because it's important, but because it's what some people will expect to see. If you're thinking to yourself, &quot;this was too long, just tell me which I should use,&quot; then I'm afraid I have some bad news: MVC vs MVVM doesn't really exist, at least not to me. MVVM is a natural evolution of MVC: it's the kind of MVC you should already have been writing, rather than a replacement. It forces you to decompose orthogonal code into individual objects, which is smart behavior regardless of what you call it.</p>
+<p>But MVVM is <em>not</em> the end of the process. Instead, it's the beginning: I recommend everyone gives MVVM a try at least once, but once you've mastered the approach you'll realize that the next logical step is to decompose your view model further so that more pieces of functionality are isolated. This is <em>not</em> me arguing for ravioli code, but simple separation of concerns – if your view model handles network requests, I'd be very suspicious indeed.</p>
+<p>Note: spaghetti code is the name given to confused source code where various parts are hopelessly entangled; ravioli code is the name given to producing lots of small objects that contain their own data and functionality independent from other objects. Both terms are frequently used negatively: if someone says your code is ravioli code, they usually mean you've split up your program into so many small parts that it's hard to understand how it fits together.</p><h2>Command-line Swift</h2>
+<p>If you’re targeting a platform that sports a terminal, such as OS X or Linux, you can leverage your Swift knowledge to build powerful command-line apps with only a small amount of learning. To demonstrate this, we’re going to build a simple command-line Hangman game that reads user input and writes the current state of play. Once you get the hang of it, you’ll be able to write your own quick Swift programs that can be chained to other terminal commands just like anything else – it’s quite liberating!</p>
+<p>Note: if you’re using Linux and don’t already have Swift installed, please start by following Apple’s official guidelines: <a href="https://swift.org/getting-started/">https://swift.org/getting-started/</a>.</p>
+<p>Before we dive into Hangman, I said you need to learn some things first, so let’s start with reading user input. This is done using the readLine() function, which returns an optional string: either the user entered something, or input ended. That “something” could be an empty string if the user hit return without typing anything – you will only get back nil if there is no more input. This is usually triggered by pressing Ctrl+D on the command line.</p>
+<p>So, to read user input you write code like this:</p>
+<pre>if let input = readLine() {
+    print("You typed \(input)\n")
+}
+
+print("Done!\n")</pre>
+<p>Because Hangman will keep requesting user input until they have either guessed the word or quit, we’ll put that into a loop like this:</p>
+<pre>while var input = readLine() {
+    // do stuff
+}</pre>
+<p>Next, Swift’s support on Linux is a bit shaky in places. Yes, it’s evolving quickly and I’m sure we’ll get to basic parity sooner or later, but you’ll find many things not implemented. Broadly speaking, all the Swift standard library should work perfectly on OS X and Linux, but if you’re using things from Foundation – e.g. the <code>contentsOfFile:usedEncoding</code> initializer for strings – you are likely to come across warnings about missing features.</p>
+<p>Third, your code is parsed from top to bottom sort of like playgrounds. This means using a function before it has been declared will trigger an error. You can use classes, structs, enums, and so on if you want to, but to begin with you’ll probably treat your command-line Swift like a compiled playground.</p>
+<p>Fourth, the <code>exit()</code> function is available to you as a way to force your app to terminate. This is generally considered A Bad Thing in iOS, but in command-line apps it makes sense because you want to halt execution when you’re done.</p>
+<p>Finally, although Xcode has a built-in template for OS X terminal apps, there really isn’t any need for it. Yes, go ahead and edit your Swift file in Xcode so you can benefit from code completion and syntax highlighting, but there are three much nicer ways to compile and test:</p>
+<ol>
+<li>The <code>swiftc</code> command converts a Swift file into an executable.</li>
+<li>The <code>swiftc -O</code> command does the same, but adds optimization – you’ll want to use this for your finished product.</li>
+<li>The <code>swift</code> command converts a Swift file into a temporary executable and runs it straight away, as if it were a scripting language. This is great for testing.</li>
+</ol>
+<p>OK, it’s time to put all that into a practical example. Please create a folder on your desktop called “hangman”, then create a new Swift file in there called hangman.swift. You can open it for editing in Xcode if you want, or in something like Vim or Emacs if you’re using Linux.</p>
+<p>Give the file this initial code:</p>
+<pre>import Foundation
+
+let word = "RHYTHM"
+var usedLetters = [Character]()
+
+print("Welcome to Hangman!")
+print("Press a letter to guess, or Ctrl+D to quit.")</pre>
+<p>That imports Foundation, sets up some data we’ll be using for the game, and prints out a welcome message. The word is hard-coded to “RHYTHM”, but you’re welcome to be more creative. The <code>usedLetters</code> variable will track the letters the player has guessed – we’ll let them make eight guesses before they lose.</p>
+<p>To test that everything is working OK, please open a terminal window and change to that folder. If you’re on OS X and new to using the command line, here are some basic instructions:</p>
+<ol>
+<li>Press Cmd+Space to show Spotlight.</li>
+<li>Type “terminal” then press return to launch the Terminal app.</li>
+<li>Type &quot;cd Desktop/hangman&quot; then return to change to the “hangman” folder on your desktop.</li>
+</ol>
+<p>Once you have a terminal window open at your hangman folder, run “swift hangman.swift” to build and run your code. After a moment of thinking, you should see the following message appear on your screen:</p>
+<pre>Welcome to Hangman!
+Press a letter to guess, or Ctrl+D to quit.</pre>
+<p>You’ll be returned to the command prompt once that message has been shown, because no user input is requested just yet. However, at least we know your Swift compiler is set up correctly!</p>
+<p>The next thing we’re going to do is define a function called <code>printWord()</code> that will print the word the player needs to guess. To do that, it will loop through every character in the <code>word</code> constant and either print the character or print an underscore depending on whether the user has guessed that letter already. This will be done using a plain old <code>print()</code> call, but we’ll using its <code>terminator</code> parameter so that it doesn’t add line breaks unless we need one.</p>
+<p>Here’s the code for the <code>printWord()</code> function; please add it to the end of the hangman.swift file:</p>
+<pre>func printWord() {
+    print("\nWord: ", terminator: "")
+    var missingLetters = false
+
+    for letter in word.characters {
+        if usedLetters.contains(letter) {
+            print(letter, terminator: "")
+        } else {
+            print("_", terminator: "")
+            missingLetters = true
+        }
+    }
+
+    print("\nGuesses: \(usedLetters.count)/8")
+
+    if missingLetters == false {
+        print("It looks like you live on… for now.")
+        exit(0)
+    } else {
+        if usedLetters.count == 8 {
+            print("Oops – you died! The word was \(word).")
+            exit(0)
+        } else {
+            print("Enter a guess: ", terminator: "")
+        }
+    }
+}</pre>
+<p>Make sure you look closely at the way I’ve used <code>print()</code>: sometimes I use the <code>terminator</code> parameter and sometimes I don’t. This is used so that printing each character from the word is done on a single line even though there are multiple <code>print()</code> calls, and also on the last line where users are asked to enter a guess - this means their guess will be typed on the same line as the prompt.</p>
+<p>We’re almost finished with the game already, but there are three more things to do: print out the starting game status, read the user’s input until they either win or lose, and print a message if they quit using Ctrl+D. Each time we read the user’s input we need to check whether they have used that letter before, then print out the newest game status.</p>
+<p>So, the game starts by calling <code>printWord()</code> once to show the user the basic instructions. Add this to the bottom of the file:</p>
+<pre>printWord()</pre>
+<p>Now we need to call <code>readLine()</code> repeatedly, add the new character to the <code>usedLetters</code> array if it hasn’t been used before, then call <code>printWord()</code> again. Add this below the previous line:</p>
+<pre>while var input = readLine() {
+    if let letter = input.uppercaseString.characters.first {
+        if usedLetters.contains(letter) {
+            print("You used that letter already!")
+        } else {
+            usedLetters.append(letter)
+        }
+    }
+
+    printWord()
+}</pre>
+<p>Note that I use <code>if/let</code> with <code>characters.first</code> to safely unwrap the first letter in the user’s input. This means that if the user presses return without typing anything they’ll just see the game status printed again. It also means that if they try to write two or more characters, we only ever use the first.</p>
+<p>Finally, we need to print a goodbye message after the <code>while</code> loop – add this to the end of the script.</p>
+<pre>print("Thanks for playing!")</pre>
+<p>That’s it! Go ahead and run <code>swift hangman.swift</code> to try the game for yourself. If you’re using the Swift package manager, run the command <code>touch Package.swift</code> (with a capital P), then use <code>swift build</code> to build the binary.</p>		</div>
+
+		<p style="text-align: center;">Copyright &copy; 2016 Paul Hudson, <a href="https://www.hackingwithswift.com">hackingwithswift.com</a>.<br /> <a href="http://twitter.com/twostraws">You should follow me on Twitter</a>.</p>
+	</body>
+</html>

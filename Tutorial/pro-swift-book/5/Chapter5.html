@@ -1,0 +1,342 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Pro Swift</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<link rel="stylesheet" href="book-assets/project.css">
+	</head>
+
+	<body>
+		<p style="text-align: center;"><img id="logo" src="book-assets/logo.png" alt="Pro Swift" width="350" /></p>
+
+		<div id="container">
+<h1>Chapter 5: Errors</h1><div class="snippet"><p><strong>Chris Eidhof (@chriseidhof), author of Advanced Swift</strong></p>
+<p>You can extend collections to have safe subscripts that return <code>nil</code> when the value isn't present:</p>
+<pre>extension Array {
+    subscript(safe idx: Int) -&gt; Element? {
+        return idx &lt; endIndex ? self[idx] : nil
+    }
+}</pre></div><h2>Error fundamentals</h2>
+<p>Swift has a unique take on error handling that is extremely flexible as long as you understand the full extent of what's on offer. I'm going to start off relatively simply and work through the full range of error handling techniques. Apple's Swift reference guide says &quot;the performance characteristics of a <code>throw</code> statement are comparable to those of a <code>return</code> statement,&quot; which means they are <em>fast</em> – we have no reason to avoid them.</p>
+<p>Let's start off with a simple example. All errors you want to throw must be an enum that conforms to the <code>ErrorType</code> protocol, which Swift can bridge to the <code>NSError</code> class from Objective-C. So, we define an error enum like this:</p>
+<pre>enum PasswordError: ErrorType {
+    case Empty
+    case Short
+}</pre>
+<p>This is a regular enum just like any other, so we can add an associated value like this:</p>
+<pre>enum PasswordError: ErrorType {
+    case Empty
+    case Short
+    case Obvious(message: String)
+}</pre>
+<p>To mark a function or method as having the potential to throw an error, add <code>throws</code> before its return type, like this:</p>
+<pre>func encryptString(str: String, withPassword password: String) throws -&gt; String {
+    // complicated encryption goes here
+    let encrypted = password + str + password
+    return String(encrypted.characters.reverse())
+}</pre>
+<p>You then use a mix of <code>do</code>, <code>try</code>, and <code>catch</code> to run the risky code. At the absolute minimum, calling our current code would look like this:</p>
+<pre>do {
+    let encrypted = try encryptString("Secret!", withPassword: "T4yl0r")
+    print(encrypted)
+} catch {
+    print("Encryption failed")
+}</pre>
+<p>That either prints the result of calling <code>encryptString()</code>, or an error message. Using <code>catch</code> by itself catches all possible errors, which is required in Swift. This is sometimes called Pokémon error handling because &quot;you gotta catch 'em all.&quot; Note: this restriction does <em>not</em> apply to top-level code in a playground; if you're using a playground, you should put your <code>do</code> block inside a function for testing purposes:</p>
+<pre>func testCatch() {
+    do {
+        let encrypted = try encryptString("Secret!", withPassword: "T4yl0r")
+        print(encrypted)
+    } catch {
+        print("Encryption failed")
+    }
+}
+
+testCatch()</pre>
+<p>Handling all errors in a single <code>catch</code> block might work for you sometimes, but more often you'll want to catch individual cases. To do this, list each case individually, ensuring the generic <code>catch</code> is last so that it will only be used when nothing else matches:</p>
+<pre>do {
+    let encrypted = try encryptString("secret information!", withPassword: "T4ylorSw1ft")
+    print(encrypted)
+} catch PasswordError.Empty {
+    print("You must provide a password.")
+} catch PasswordError.Short {
+    print("Your password is too short.")
+} catch PasswordError.Obvious {
+    print("Your password is obvious")
+} catch {
+    print("Error")
+}</pre>
+<p>To work with an associated value, you need  bind it to a constant inside your <code>catch</code> block:</p>
+<pre>catch PasswordError.Obvious(let message) {
+    print("Your password is obvious: \(message)")
+}</pre>
+<p>If you want to test that in action, amend the <code>encryptString()</code> method to this:</p>
+<pre>func encryptString(str: String, withPassword password: String) throws -&gt; String {
+    // complicated encryption goes here
+    if password == "12345" {
+        throw PasswordError.Obvious(message: "I have the same number on my luggage")
+    }
+
+    let encrypted = password + str + password
+    return String(encrypted.characters.reverse())
+}</pre>
+<p>One last thing before we move on: when working with associated values you can also use pattern matching. To do this, first use <code>let</code> to bind the associated value to a local constant, then use a <code>where</code> clause to filter. For example, we could modify our <code>PasswordError.Short</code> case to return how many characters should have been provided:</p>
+<pre>case Short(minChars: Int)</pre>
+<p>With that change, we can catch variations on <code>Short</code> by filtering by the <code>minChars</code> associated value:</p>
+<pre>catch PasswordError.Short(let minChars) where minChars &lt; 5 {
+    print("We have a lax security policy: passwords must be at least \(minChars)")
+} catch PasswordError.Short(let minChars) where minChars &lt; 8 {
+    print("We have a moderate security policy: passwords must be at least \(minChars)")
+} catch PasswordError.Short(let minChars) {
+    print("We have a serious security policy: passwords must be at least \(minChars)")
+}</pre><h2>Error propagation</h2>
+<p>When you use <code>try</code> to call a function, Swift forces you to handle any errors. This is sometimes unhelpful behavior: if function A calls function B, and function B calls function C, who should handle errors thrown by C? If your answer is &quot;B&quot; then your existing error handling knowledge is enough for you. If your answer is &quot;A&quot; – i.e., that one caller should handle some or all errors in any functions that it calls as well as any errors in functions that <em>those</em> functions call, and so on, you need to learn about <em>error propagation</em>.</p>
+<p>Let's model the <code>A()</code>, <code>B()</code>, <code>C()</code> function calls along with a trimmed version of the <code>PasswordError</code> enum we already used:</p>
+<pre>enum PasswordError: ErrorType {
+    case Empty
+    case Short
+    case Obvious
+}
+
+func functionA() {
+    functionB()
+}
+
+func functionB() {
+    functionC()
+}
+
+func functionC() {
+    throw PasswordError.Short
+}</pre>
+<p>That code won't compile as-is because <code>functionC()</code> throws an error but isn't marked with <code>throws</code>. If we add that, the code is as follows:</p>
+<pre>func functionC() throws {
+    throw PasswordError.Short
+}</pre>
+<p>But now the code still won't compile, because <code>functionB()</code> is calling a throwing function without using <code>try</code>. Now we are presented with several options, and I want to explore them individually.</p>
+<p>The first option is to catch all errors inside <code>functionB()</code>. This is the option you'll use if you want <code>functionA()</code> to be oblivious to any errors that happen below it, and looks like this:</p>
+<pre>func functionA() {
+    functionB()
+}
+
+func functionB() {
+    do {
+        try functionC()
+    } catch {
+        print("Error!")
+    }
+}
+
+func functionC() throws {
+    throw PasswordError.Short
+}</pre>
+<p>You could add individual <code>catch</code> blocks to <code>functionB()</code>, but the principle is still the same.</p>
+<p>The second option is for <code>functionB()</code> to ignore the errors and let them bubble upwards to its own caller, which is called <em>error propagation</em>. To do this, we need to move the <code>do/catch</code> code out of <code>functionB()</code> and into <code>functionA()</code>. We then just need to mark <code>functionB()</code> with throws to have it work, like this:</p>
+<pre>func functionA() {
+    do {
+        try functionB()
+    } catch {
+        print("Error!")
+    }
+}
+
+func functionB() throws {
+    try functionC()
+}
+
+func functionC() throws {
+    throw PasswordError.Short
+}</pre>
+<p>Before we look at the third option, I want you to take a close look at the current code for <code>functionB()</code>: it's a function that uses <code>try</code> <em>without</em> having a <code>do/catch</code> block around it. This is perfectly fine, as long the function itself is marked as <code>throws</code> so any errors can continue to propagate upwards.</p>
+<p>The third option is to delegate parts of error handling to whichever function is most appropriate. For example, you might want <code>functionB()</code> to catch empty passwords, but <code>functionA()</code> to handle all other errors. Swift normally wants all <code>try/catch</code> blocks to be exhaustive, but if you're in a throwing function that requirement is waived – any errors you don't catch will just propagate upwards.</p>
+<p>The code below has <code>functionB()</code> handle empty passwords, and <code>functionA()</code> handle everything else:</p>
+<pre>func functionA() {
+    do {
+        try functionB()
+    } catch {
+        print("Error!")
+    }
+}
+
+func functionB() throws {
+    do {
+        try functionC()
+    } catch PasswordError.Empty {
+        print("Empty password!")
+    }
+}
+
+func functionC() throws {
+    throw PasswordError.Short
+}</pre>
+<p>Ultimately all error cases must be caught, so at some point you need to have a generic catch all statement.</p><h2>Throwing functions as parameters</h2>
+<p>I'm now going to walk through a really useful feature of Swift, and I'm saying this up front because if you find yourself questioning why it's useful I want to make sure you power through – trust me, it's worth it!</p>
+<p>First, here's an important quote from the Swift reference guide: &quot;nonthrowing functions are subtypes of throwing functions. As a result, you can use a nonthrowing function in the same places as a throwing one.&quot;</p>
+<p>Think about that for a moment. Let it sink in: nonthrowing functions are subtypes of throwing functions, so you can use them anywhere that expects a throwing function. You could even write code like the below if you wanted to, although you'll get a compiler warning because it's unnecessary:</p>
+<pre>func definitelyWontThrow() {
+    print("Shiny!")
+}
+
+try definitelyWontThrow()</pre>
+<p>Where this starts to really matter is when you use a throwing function as a parameter, and I want to give you a working example so you can learn all this in a practical context.</p>
+<p>Imagine an app that must fetch user data, either remotely or locally, then act upon it. There's a function to fetch remote user data, which might throw an error if there's a network problem. There's a second function to fetch local user data, which is guaranteed to work and so doesn't throw. Finally, there's a third function that calls one of those two fetch functions, then acts upon the result.</p>
+<p>Putting that final function to one side, the initial code might look like this:</p>
+<pre>enum Failure: ErrorType {
+    case BadNetwork(message: String)
+    case Broken
+}
+
+func fetchRemote() throws -&gt; String {
+    // complicated, failable work here
+    throw Failure.BadNetwork(message: "Firewall blocked port.")
+}
+
+func fetchLocal() -&gt; String {
+    // this won't throw
+    return "Taylor"
+}</pre>
+<p>The third function is where things get interesting: it needs to call either <code>fetchRemote()</code> or <code>fetchLocal()</code> and do something with the data that was fetched. Both those functions accept no parameters and return a string, however one is marked <code>throws</code> and the other is not.</p>
+<p>Think back to what I wrote a few minutes ago: you can use nonthrowing functions anywhere that expects a throwing function. So, we can write a function like this: <code>fetchUserData(closure: () throws -&gt; String)</code>: it's called <code>fetchUserData()</code>, it accepts a closure as a parameter, and that closure must accept no parameters and return a string. But the closure <em>doesn't</em> have to throw: we've said that it <em>can</em>, but it doesn't <em>have</em> to.</p>
+<p>With that in mind, a first pass at the <code>fetchUserData()</code> function might look like this:</p>
+<pre>func fetchUserData(closure: () throws -&gt; String) {
+    do {
+        let userData = try closure()
+        print("User data received: \(userData)")
+    } catch Failure.BadNetwork(let message) {
+        print(message)
+    } catch {
+        print("Fetch error")
+    }
+}
+
+fetchUserData(fetchLocal)</pre>
+<p>As you can see, we can move from local fetching to remote fetching by changing only the last line:</p>
+<pre>fetchUserData(fetchRemote)</pre>
+<p>So, it doesn't matter if the closure we pass in does or does not throw, as long as we state that it <em>might</em> and handle it appropriately.</p>
+<p>Where things get interesting – and by interesting I mean thoroughly awesome – is when you want to use error propagation with a throwing closure parameter. Stick with me – we're almost through!</p>
+<p>A simple solution might declare <code>fetchUserData()</code> as throwing then catch errors at the caller, like this:</p>
+<pre>func fetchUserData(closure: () throws -&gt; String) throws {
+    let userData = try closure()
+    print("User data received: \(userData)")
+}
+
+do {
+    try fetchUserData(fetchLocal)
+} catch Failure.BadNetwork(let message) {
+    print(message)
+} catch {
+    print("Fetch error")
+}</pre>
+<p>That works fine for this exact situation, but Swift has a much smarter solution. This <code>fetchUserData()</code> could be called elsewhere in our app, perhaps more than once – it's going to get awfully messy having all that <code>try/catch</code> code in there, particularly the times we use <code>fetchLocal()</code> and know for a fact it won't throw.</p>
+<p>Swift's solution is the <code>rethrows</code> keyword, which we can use to replace the regular <code>throws</code> in the <code>fetchUser</code> function like this:</p>
+<pre>func fetchUserData(closure: () throws -&gt; String) rethrows {
+    let userData = try closure()
+    print("User data received: \(userData)")
+}</pre>
+<p>So, the closure <em>throws</em>, but the <code>fetchUserData()</code> function <em>rethrows</em>. The difference might seem subtle, but this code will now create a warning in Xcode:</p>
+<pre>do {
+    try fetchUserData(fetchLocal)
+} catch Failure.BadNetwork(let message) {
+    print(message)
+} catch {
+    print("Fetch error")
+}</pre>
+<p>If you replace <code>try fetchUserData(fetchLocal)</code> with <code>try fetchUserData(fetchRemote)</code> then the warning goes away. What's happening is that the Swift compiler is now checking each call to <code>fetchUserData()</code> individually, and now only requires <code>try/catch</code> to be used when the closure you pass in throws. So, when you use <code>fetchUserData(fetchLocal)</code> the compiler can see <code>try/catch</code> isn't necessary, but when you use <code>fetchUserData(fetchRemote)</code> Swift will ensure you catch errors correctly.</p>
+<p>So, with <code>rethrows</code> you get the best of both worlds: when you pass in a closure that will throw Swift you get all the safety you'd expect from Swift, but you pass in a closure that won't throw you don't need to add pointless <code>try/catch</code> code.</p>
+<p>Armed with this knowledge, take a look at the code for Swift's short-circuit logical <code>&amp;&amp;</code> operator:</p>
+<pre>public func &amp;&amp; &lt;T : Boolean, U : Boolean&gt;(lhs: T, @autoclosure rhs: () throws -&gt; U) rethrows -&gt; Bool {
+    return lhs.boolValue ? try rhs().boolValue : false
+}</pre>
+<p>You should now be able to break down exactly what that does: the right-hand side of the <code>&amp;&amp;</code> is an autoclosure so that it gets executed only if the left-hand side evaluates to true. <code>rhs</code> is marked as throwing even though it might not, and the whole function is marked as <code>rethrows</code> so that the caller is required to use <code>try/catch</code> only when necessary.</p>
+<p>I hope you'll agree that Swift’s error handling approach is fractally beautiful: the more you dig into it, the more you come to appreciate its subtle genius.</p><h2>try vs try? vs try!</h2>
+<p>Swift's error handling comes in three forms, and all three have their uses. All are used when calling a function that is marked with <code>throws</code>, but have subtly different meaning:</p>
+<ol>
+<li>When using <code>try</code> you must have a <code>catch</code> block to handle any errors that occur.</li>
+<li>When using <code>try?</code> the function you call will automatically return <code>nil</code> if any errors are thrown. You don't need to catch them, but you do need to be aware that your return value becomes optional.</li>
+<li>When using <code>try!</code> the function will crash your application if any errors are thrown.</li>
+</ol>
+<p>I've numbered them because that's the order you should use them in: regular <code>try</code> is by far the most common and behaves as we've seen so far; <code>try?</code> is a safe and useful fallback that, when used wisely, will do a lot to improve your code's readability; <code>try!</code> means &quot;throwing an error is so unlikely – or so undesirable – that I'm willing to accept a crash,&quot; and is uncommon.</p>
+<p>Now, you might wonder why <code>try!</code> even exists: if you're certain it won't throw an error, why is the function marked with <code>throws</code> in the first place? Well, consider code that reads a file from your application bundle. Loading a file from the contents of a string can throw an error if the file doesn't exist or isn't readable, but if that situation arises your app is clearly in a very broken state – forcing a crash might well be a desirable outcome rather than allowing the user to continue with a corrupted app. The choice is yours.</p>
+<p>Of the three, only the regular <code>try</code> requires a <code>do/catch</code> block, so if you're looking for concise code you are likely to want to use <code>try?</code> on occasion. I've already covered <code>try</code>, and <code>try!</code> is effectively identical to <code>try?</code> except rather than a nil return value you get a crash, so I'll focus on using <code>try?</code> here.</p>
+<p>Using <code>try?</code> means safely unwrapping its optional return value, like this:</p>
+<pre>if let savedText = try? String(contentsOfFile: "saved.txt")) {
+    loadText(savedText)
+} else {
+    showFirstRunScreen()
+}</pre>
+<p>You can also use the nil coalescing operator <code>??</code> to use a default value if <code>nil</code> is returned, thus removing optionality altogether:</p>
+<pre>let savedText = (try? String(contentsOfFile: "saved.txt")) ?? "Hello, world!"</pre>
+<p>On rare occasions, I use <code>try?</code> bit like UDP: try this thing, but I don't care if it fails. Two of the most important protocols behind the internet are called TCP and UDP. TCP guarantees that all packets will arrive, and will keep trying to re-send until a certain time has expired; it's used for downloads, for example, because if you're missing part of a zip file then you have nothing. UDP sends all data packets once and hopes for the best: if they arrive, great; if not, just wait until the next one arrives. UDP is useful for things like video streaming, where you don't care if you lost a split second of a live stream – it's more important that new video keeps coming in.</p>
+<p>So, <code>try?</code> can be used a bit like UDP: if you don't care what the return value is and you just want to make an attempt to do something, <code>try?</code> is for you:</p>
+<pre>_ = try? string.writeToFile(somePathHere, atomically: true, encoding: NSUTF8StringEncoding)</pre><h2>Assertions</h2>
+<p>Assertions allow you to state that some condition must be true. The condition is down to you, and can be as complicated as you like, but if it evaluates to <code>false</code> your program will halt immediately. Assertions are cleverly designed in Swift, to the point where reading its source code is a valuable exercise.</p>
+<p>When you write <code>assert</code> in Xcode, the code completion will give you two options:</p>
+<pre>assert(condition: Bool)
+assert(condition: Bool, message: String)</pre>
+<p>In the first option you need to provide a condition to be tested; in the second, you also provide a message to display if the condition evaluates to false. In the code below, the first assertion will evaluate to try and so nothing will happen; in the second, it will fail because the condition is false, so a message will be printed:</p>
+<pre>assert(1 == 1)
+assert(1 == 2, "Danger, Will Robinson: mathematics failure!")</pre>
+<p>Obviously asserting basic arithmetic isn't much use, so you'll usually write code like this:</p>
+<pre>let success = runImportantOperation()
+assert(success == true, "Important operation failed!")</pre>
+<p>Assertions are extremely useful when writing complicated apps, because you can scatter them throughout your code to ensure that everything is as it should be. You can test as much as you want, as often as you want, and it means that any unexpected state in your app – when you say &quot;how did <code>someVar</code> get set to <em>that</em>?&quot; – gets caught early in development.</p>
+<p>To explore how assertions a little, take a look at the actual type signature from the Swift source code:</p>
+<pre>public func assert(@autoclosure condition: () -&gt; Bool, @autoclosure _ message: () -&gt; String = String(), file: StaticString = #file, line: UInt = #line)</pre>
+<p>The last two parameters have defaults provided by the Swift compiler, and it's unlikely you'll want to change them: <code>#file</code> is replaced by the name of the current file, and <code>#line</code> is replaced by the line number of the code that triggered the assertion. These are passed in as parameters with default values (as opposed to being specified inside the function) so that Swift uses the filename and line number of the call site, not some line inside <code>assert()</code>.</p>
+<p>The first two parameters are much more interesting: both the <code>condition</code> and <code>message</code> parameters use <code>@autoclosure</code>, which means they aren't immediately executed. This is important, because internally Swift will execute assertions only if it's in debug mode. This means you can assertion hundreds or even thousands of times in your app, but all that work will only get done if you're debugging. When the Swift compiler runs in release mode, the work is skipped.</p>
+<p>Here's the body of <code>assert()</code>, straight from the Swift source code:</p>
+<pre>if _isDebugAssertConfiguration() {
+    if !_branchHint(condition(), expected: true) {
+      _assertionFailed("assertion failed", message(), file, line, flags: _fatalErrorFlags())
+    }
+}</pre>
+<p>The functions prefixed with an underscore are internal, but you ought to be able to guess what it does:</p>
+<ul>
+<li><code>_isDebugAssertConfiguration()</code> returns false if we're not in debug mode. This is what causes the assertion to disappear when built for release.</li>
+<li><code>!_branchHint(condition(), expected: true)</code> runs the condition closure that was created by <code>@autoclosure</code>. It tells the compiler to expect the condition to evaluate successfully (which ought to be the case most of the time), which helps optimize your code. This only affects debugging, but it helps your assertions run a little faster.</li>
+<li>If we're in debugging mode and calling <code>condition()</code> returned false, then <code>_assertionFailed()</code> is called to terminate your program. At this point, the <code>message()</code> closure is called to print a useful error.</li>
+</ul>
+<p>The use of <code>@autoclosure</code> is perfect for the condition, because this way it gets run only if we're in debug mode. But you might wonder why the <code>message</code> parameter is also an autoclosure – isn't it just a string? This is where <code>assert()</code> gets <em>really</em> clever: because <code>message</code> is a closure, you can run any other code you like before finally returning a string, and none of it will get called unless your assertion fails.</p>
+<p>The most common use for this is when using a logging system: your <code>message</code> closure can write an error to your log, before returning that message back to <code>assert()</code>. Below is a simplified example that writes your message to a file before returning it – it's basically just a pass-through that adds some extra functionality:</p>
+<pre>func saveError(error: String, file: String = #file, line: Int = #line) -&gt; String {
+    _ = try? error.writeToFile(pathToDebugFile, atomically: true, encoding: NSUTF8StringEncoding)
+    return error
+}
+
+assert(1 == 2, saveError("Fatal error!"))</pre>
+<h3>Preconditions</h3>
+<p>Assertions are checked only when your app is running in debug mode, which is useful when you're developing but automatically deactivated in release mode. If you wish to make assertions in release mode – bearing in mind that a failure causes your app to terminate immediately – you should use <code>precondition()</code> instead. This takes identical parameters to <code>assert()</code> but is compiled differently: if you build with <code>-Onone</code> or <code>-O</code> (no optimization or standard optimization), a failed precondition will cause your app to terminate. If you build with <code>-Ounchecked</code> – the fastest optimization level – only then will preconditions be ignored. If you're using Xcode, this means the &quot;Disable Safety Checks&quot; build option is set to Yes.</p>
+<p>Just like using <code>try!</code>, there is a good reason why you might want to crash your app in release mode: if something has gone fatally wrong in such a way that it suggests your app is in an unstable, unknown, or perhaps even dangerous state, it's better to bail out than continue and risk serious data loss.</p>
+<p>In the chapter on operator overloading, I presented a modification to the <code>*</code> operator that allows us to multiply two arrays:</p>
+<pre>func *(lhs: [Int], rhs: [Int]) -&gt; [Int] {
+    guard lhs.count == rhs.count else { return lhs }
+
+    var result = [Int]()
+
+    for (index, int) in lhs.enumerate() {
+        result.append(int * rhs[index])
+    }
+
+    return result
+}</pre>
+<p>As you can see, the function kicks off with a <code>guard</code> to ensure both arrays are exactly the same size – if they aren't, we just return the left-hand side operand. In many cases this is safe programming, but it's also possible that if our program ended up with two arrays of different sizes then something serious has gone wrong and we should halt execution. In this situation, using <code>precondition()</code> might be preferable:</p>
+<pre>func *(lhs: [Int], rhs: [Int]) -&gt; [Int] {
+    precondition(lhs.count == rhs.count, "Arrays were not the same size")
+
+    var result = [Int]()
+
+    for (index, int) in lhs.enumerate() {
+        result.append(int * rhs[index])
+    }
+
+    return result
+}
+
+let a = [1, 2, 3]
+let b = [4, 5]
+let c = a * b</pre>
+<p>Remember, enabling <code>-Ounchecked</code> will effectively disable your preconditions, but it also disables other bounds checking too – that's why it's so fast!</p>		</div>
+
+		<p style="text-align: center;">Copyright &copy; 2016 Paul Hudson, <a href="https://www.hackingwithswift.com">hackingwithswift.com</a>.<br /> <a href="http://twitter.com/twostraws">You should follow me on Twitter</a>.</p>
+	</body>
+</html>

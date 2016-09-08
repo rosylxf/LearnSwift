@@ -1,0 +1,426 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Pro Swift</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<link rel="stylesheet" href="book-assets/project.css">
+	</head>
+
+	<body>
+		<p style="text-align: center;"><img id="logo" src="book-assets/logo.png" alt="Pro Swift" width="350" /></p>
+
+		<div id="container">
+<h1>Chapter 4: Functions</h1><div class="snippet"><p><strong>Simon Gladman (@flexmonkey), author of Core Image for Swift</strong></p>
+<p>When writing code to interpolate between two numbers, it's so easy to default to a linear interpolation. However, it's often a lot nicer to smoothly transition between two values. So my tip is avoid the pedestrian and interpolate with a function such as <code>smootherStep()</code>:</p>
+<pre>func smootherStep(value: CGFloat) -&gt; CGFloat {
+    let x = value &lt; 0 ? 0 : value &gt; 1 ? 1 : value
+
+    return ((x) * (x) * (x) * ((x) * ((x) * 6 - 15) + 10))
+}</pre></div><h2>Variadic functions</h2>
+<p>Variadic functions are functions of indefinite arity, which is a fancy way of saying that they take as many parameters as you send. This is used in some basic functions – even <code>print()</code> – to make your code easier and safer to write.</p>
+<p>Let's work with <code>print()</code>, because it's a function you know well. You're used to seeing code like this:</p>
+<pre>print("I'm Commander Shepard and this is my favorite book")</pre>
+<p>But <code>print()</code> is a variadic function: you can pass it any number of things to print:</p>
+<pre>print(1, 2, 3, 4, 5, 6)</pre>
+<p>That will produce different output to calling <code>print()</code> once for each number: using one call prints the number on a single line, whereas using multiple calls would print the numbers one per line.</p>
+<p>The variadic nature of <code>print()</code> becomes more useful once you add in the optional extra parameters: <code>separator</code> and <code>terminator</code>. The first one places a string between each of the values you passed, and the second places a string once all values have been printed. For example, this will print &quot;1, 2, 3, 4, 5, 6!&quot;:</p>
+<pre>print(1, 2, 3, 4, 5, 6, separator: ", ", terminator: "!")</pre>
+<p>So, that's how to <em>call</em> variadic functions. Let's now talk about making them, which I think you'll find is quite slick in Swift.</p>
+<p>Consider the code below:</p>
+<pre>func addNumbers(numbers: [Int]) -&gt; Int {
+    var total = 0
+
+    for number in numbers {
+        total += number
+    }
+
+    return total
+}
+
+addNumbers([1, 2, 3, 4, 5])</pre>
+<p>That function accepts an array of integers, and each number together to form a total. There are more efficient ways of doing this, but that's not the point of this chapter!</p>
+<p>To make that function variadic – i.e., so that it accepts any number of individual integers rather than a single array, two changes are needed. First, rather than writing <code>[Int]</code> we need to write <code>Int...</code>. Second, rather than writing <code>addNumbers([1, 2, 3, 4, 5])</code> we need to write <code>addNumbers(1, 2, 3, 4, 5)</code></p>
+<p>And that's it. So, the final code is this:</p>
+<pre>func addNumbers(numbers: Int...) -&gt; Int {
+    var total = 0
+
+    for number in numbers {
+        total += number
+    }
+
+    return total
+}
+
+addNumbers(1, 2, 3, 4, 5)</pre>
+<p>You can place your variadic parameter anywhere in your function's parameter list, but you're only ever allowed one per function.</p><h2>Operator overloading</h2>
+<p>This is a topic that people seem to love and hate in equal measure. Operator overloading is the ability to implement your own operators or even adjust the existing ones, such as <code>+</code> or <code>*</code>.</p>
+<p>The main reason for using operator overloading is that it gives you very clear, natural, and expressive code. You already understand that 5 + 5 equals 10 because you understand basic maths, so it's a logical extension to allow <code>myShoppingList + yourShoppingList</code>, i.e. the addition of two custom structs.</p>
+<p>There are several downsides to operator overloading. First, its meaning can be opaque: if I say <code>HenryTheEighth + AnneBoleyn</code>, is the result a happily (for a time!) married couple, a baby in the form of the future Queen Elizabeth, or some conjoined human with four arms and legs? Second, it does nothing that methods can't do: <code>HenryTheEighth.marry(AnneBoleyn)</code> would have the same result, and is significantly clearer. Third, it hides complexity: 5 + 5 is a trivial operation, but perhaps <code>Person + Person</code> involves arranging a ceremony, finding a wedding dress, and so on.</p>
+<p>Fourth, and perhaps most seriously, operator overloading can produce unexpected results, particularly because you can adjust the existing operators with impunity.</p>
+<h3>The basics of operators</h3>
+<p>To demonstrate how confusing operator overloading can be, I want to start by giving you a basic example of overloading the <code>==</code> operator. Consider the following code:</p>
+<pre>if 4 == 4 {
+    print("Match!")
+} else {
+    print("No match!")
+}</pre>
+<p>As you might, that will print &quot;Match!&quot; because 4 is always equal to 4. Or is it…?</p>
+<p>Enter operator overloading. With just three lines of code, we can cause critical damage to pretty much every app:</p>
+<pre>func ==(lhs: Int, rhs: Int) -&gt; Bool {
+    return false
+}
+
+if 4 == 4 {
+    print("Match!")
+} else {
+    print("No match!")
+}</pre>
+<p>When that code runs, it will print &quot;No match!&quot; because we've written the <code>==</code> operator so that it always returns false. As you can see, the name of the function is the operator itself, i.e. <code>func ==</code>, so it's very clear what you're modifying. You can also see that this function expects to receive two integers (<code>lhs</code> and <code>rhs</code>, for left-hand side and right-hand side), and will return a boolean that reports whether those two numbers are considered equal.</p>
+<p>As well as a function that does the actual work, operators also have precedence and associativity, both of which affect the result of the operation. When multiple operators are used together without brackets, Swift uses the operator with the highest precedence first – you probably learned this as PEMDAS (Parentheses, Exponents, Multiply, Divide, Add, Subtract), BODMAS, or similar depending on where you were schooled. If precedence alone is not enough to decide the order of operations, associativity is used.</p>
+<p>Swift lets you control both precedence and associativity. Let's try an experiment now: what value should the following operation result in?</p>
+<pre>let i = 5 * 10 + 1</pre>
+<p>Following PEMDAS, the multiplication should be executed first (5 * 10 = 50), then the addition (50 + 1 = 51), so the result is 51. This precedence is baked right into Swift – here's the exact code from the Swift standard library:</p>
+<pre>infix operator + {
+    associativity left
+    precedence 140
+}
+
+infix operator * {
+    associativity left
+    precedence 150
+}</pre>
+<p>These operators are called &quot;infix&quot; because they are placed inside two operands, i.e. 5 + 5 rather than a prefix operator like <code>!</code> that goes before something, e.g. <code>!loggedIn</code>.</p>
+<p>Swift lets us redefine the precedence for existing operators. It's just a number between 0 and 255, but in the case of our little arithmetic we could cause all sorts of curious behavior by rewriting the <code>*</code> operator like this:</p>
+<pre>infix operator * {
+    associativity left
+    precedence 129
+}</pre>
+<p>The absolute precedence value isn't important, only its relative value compared to other operators. In this case, we've redefined <code>*</code> to have a lower precedence than <code>+</code>, which means this code will now return 55:</p>
+<pre>let i = 5 * 10 + 1</pre>
+<p>That's the same line of code as before, but now it will be executed with the addition first (10 + 1 = 11) followed by the multiplication (5 * 11) to give 55.</p>
+<p>When two operators have the same precedence, associativity comes into play. For example, consider the following:</p>
+<pre>let i = 10 - 5 - 1</pre>
+<p>For reference, here's how the Swift standard library defines the <code>-</code> operator:</p>
+<pre>infix operator - {
+    associativity left
+    precedence 140
+}</pre>
+<p>As you can see, <code>-</code> is defined as having left associativity, which means <code>10 - 5 - 1</code> is executed as <code>(10 - 5) - 1</code> and <em>not</em> <code>10 - (5 - 1)</code>. The difference is subtle, but important: unless we change it, <code>10 - 5 - 1</code> will give the result 4. Of course, if you want to cause a litte havoc, you can change it like this:</p>
+<pre>infix operator - {
+    associativity right
+    precedence 140
+}
+
+let i = 10 - 5 - 1</pre>
+<p>Now it will be interpreted as <code>10 - (5 - 1)</code>, which is 6.</p>
+<h3>Adding to an existing operator</h3>
+<p>Now that you understand how operators work, let's modify the <code>*</code> operator so that it can multiply arrays of integers like this:</p>
+<pre>let result = [1, 2, 3] * [1, 2, 3]</pre>
+<p>Once we're done, that will return a new array containing [1, 4, 9], which is 1x1, 2x2 and 3x3.</p>
+<p>The <code>*</code> operator already exists, so we don't need to declare it. Instead, we just need to create a new <code>func *</code> that takes our new data types. This function will create a new array made of multiplying each item in the two arrays it is provided. Here's the code:</p>
+<pre>func *(lhs: [Int], rhs: [Int]) -&gt; [Int] {
+    guard lhs.count == rhs.count else { return lhs }
+
+    var result = [Int]()
+
+    for (index, int) in lhs.enumerate() {
+        result.append(int * rhs[index])
+    }
+
+    return result
+}</pre>
+<p>Note that I added a <code>guard</code> at the beginning to ensure both arrays contain the same number of items.</p>
+<p>Because the <code>*</code> operator already exists, the important thing is the <code>lhs</code> and <code>rhs</code> parameters, both of which are integer arrays: these parameters are what ensure this new function is selected when two integer arrays are multiplied.</p>
+<h3>Adding a new operator</h3>
+<p>When you add a new operator, you need to give Swift enough information to use it. At the very least you need to specify the new operator's position (prefix, postfix, or infix), but if you don't specify a precedence or associativity Swift will default to &quot;100&quot; and &quot;none&quot; respectively.</p>
+<p>Let's add a new operator, <code>**</code>, which returns one value raised to the power of another. That is, <code>2 ** 4</code> should equal 2 <em> 2 </em> 2 * 2, i.e. 16. We're going to use the <code>pow()</code> function for this, so you'll need to import Foundation:</p>
+<pre>import Foundation</pre>
+<p>Once that's done, we need to tell Swift that <code>**</code> will be an infix operator, because we'll have one operand on its left and another on its right:</p>
+<pre>infix operator ** {}</pre>
+<p>The empty braces mean &quot;just use the defaults for precedence and associativity.&quot;</p>
+<p>Finally, the new <code>**</code> function itself. I've made it accept doubles for maximum flexibility, and Swift is smart enough to infer 2 and 4 as doubles when used with this operator:</p>
+<pre>func **(lhs: Double, rhs: Double) -&gt; Double {
+    return pow(lhs, rhs)
+}</pre>
+<p>As you can see, the function itself is a cinch thanks to <code>pow()</code>!</p>
+<h3>Modifying an existing operator</h3>
+<p>Now for something more complicated: modifying an existing operator. I've chosen a slightly more complicated example because if you can watch me solve it here I hope it will help you solve your own operator overloading problems.</p>
+<p>The operator I'm going to modify is <code>...</code>, which exists already as the closed range operator. So, you can write <code>1...10</code> and get back a range covering 1 up to 10 inclusive. By default this is an infix operator with the low end of the range on the left and the high end of the range on the right, but I'm going to modify it so that it also accepts a range on the left and another integer on the right, like this:</p>
+<pre>let range = 1...10...1</pre>
+<p>When that code is run, it will return an array containing the numbers 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 – it counts up then down. This is possible because the operator appears twice: the first time it will see <code>1...100</code>, which is the closed range operator, but the second time it will see <code>Range&lt;Int&gt;...1</code>, which is going to be our new operation. In this function, the <code>Range&lt;Int&gt;</code> is the left-hand side operand and the <code>Int</code> 1 is the right-hand side operand.</p>
+<p>The new <code>...</code> function needs to do three things:</p>
+<ol>
+<li>Pull out the highest value in the left-hand range. This is optional because the range might be empty, but if it's optional we'll just return the existing left-hand range as an array.</li>
+<li>Calculate a new range by going from the right-hand integer up to the highest point in the left-hand range, then reversing this range.</li>
+<li>Append the left-hand range to the newly created downward range, and return that as the result of the function.</li>
+</ol>
+<p>In code, it looks like this:</p>
+<pre>func ...(lhs: Range&lt;Int&gt;, rhs: Int) -&gt; [Int] {
+    guard let maximum = lhs.last else { return Array(lhs) }
+
+    let downwards = (rhs ..&lt; maximum).reverse()
+    return Array(lhs) + downwards
+}</pre>
+<p>If you try that code out, you'll see it <em>won't</em> work – at least not yet. To see why, take a look at Swift's definition of the <code>...</code> operator:</p>
+<pre>infix operator ... {
+    associativity none
+    precedence 135
+}</pre>
+<p>And now take a look at our code again:</p>
+<pre>let range = 1...10...1</pre>
+<p>You can see we're using the <code>...</code> operator twice, which means Swift needs to know whether we mean <code>(1...10)...1</code> or <code>1...(10...1)</code>. As you can see above, Swift's definition of <code>...</code> is that it has <em>no</em> associativity, so Swift doesn't know what to do. So, as things stand our new operator will work only with code like this:</p>
+<pre>let range = (1...10)...1</pre>
+<p>If we want that same behavior without the user having to add the parentheses, we need to tell Swift that <code>...</code> has left associativity, like this:</p>
+<pre>infix operator ... {
+    associativity left
+    precedence 135
+}</pre>
+<p>That's it: the code now works correctly without parentheses, and we have a useful new operator. Don't forget that in playgrounds the order of your code matters a lot – your final code should be this:</p>
+<pre>infix operator ... {
+    associativity left
+    precedence 135
+}
+
+func ...(lhs: Range&lt;Int&gt;, rhs: Int) -&gt; [Int] {
+    guard let maximum = lhs.last else { return Array(lhs) }
+
+    let downwards = (rhs ..&lt; maximum).reverse()
+    return Array(lhs) + downwards
+}
+
+let range = 1...10...1
+print(range)</pre><h2>Closures</h2>
+<p>Like tuples, closures are endemic in Swift: global functions are closures, nested functions are closures, functional methods like <code>sort()</code> and <code>map()</code> accept closures, lazy properties use closures, and that's just the tip of the iceberg. You <em>will</em> need to use closures during your Swift career, and if you want to advance to a senior development position then you'll need to be comfortable <em>creating</em> them too.</p>
+<p>I know some people have unusual ideas of what closures are, so let's start with a simple definition: a closure is a block of code that can be passed around and stored like a variable, which also has the ability to capture any values it uses. This capturing is really what makes closures hard to understand, so we'll come back to it later.</p>
+<h3>Creating simple closures</h3>
+<p>Let's create a trivial closure to get things moving:</p>
+<pre>let greetPerson = {
+    print("Hello there!")
+}</pre>
+<p>That creates a closure called <code>greetPerson</code>, which can then be used like a function:</p>
+<pre>greetPerson()</pre>
+<p>Because closures are first-class data types – i.e., just like integers, strings, and others – you can copy them and use them as parameters to other functions. Here's copying in action:</p>
+<pre>let greetCopy = greetPerson
+greetCopy()</pre>
+<p>When copying closures, remembering that closures are a reference type – both those &quot;copies&quot; in fact point to the same shared closure.</p>
+<p>To pass a closure into a function as a parameter, specify the closure's own parameter list and return value as its data type. That is, rather than writing <code>param: String</code>, you would write something like <code>param: () -&gt; Void</code> to accept a closure that has no parameters and returns no value. Yes, the <code>-&gt; Void</code> is required, otherwise <code>param: ()</code> would mean an empty tuple.</p>
+<p>If we wanted to pass our <code>greetPerson</code> closure into a function and call it there, we'd use code like this:</p>
+<pre>func runSomeClosure(closure: () -&gt; Void) {
+    closure()
+}
+
+runSomeClosure(greetPerson)</pre>
+<p>Of course, there isn't much point to that code: why is a closure even needed? Well, in that example it isn't, but what if we wanted to call the closure after 5 seconds? Or if we wanted to call it only sometimes? Or if certain conditions are met? This is where closures become useful: they are pieces of functionality that your app can store away to be used later on if needed.</p>
+<p>Where closures start to get confusing is when they accept their own parameters, partly because their parameter list is placed in an unusual location, but also because the type syntax for these closures can look quite messy!</p>
+<p>First: how to make a closure accept parameters. To do this, write your parameter list <em>inside</em> the closure's braces, followed by the keyword <code>in</code>:</p>
+<pre>var greetPerson = { (name: String) in
+    print("Hello, \(name)!")
+}
+
+greetPerson("Taylor")</pre>
+<p>This is also where you specify a capture list if you need one. This is most commonly used to avoid strong reference cycles with <code>self</code> by making it <code>unowned</code> like this:</p>
+<pre>var greetPerson = { (name: String) [unowned self] in
+    print("Hello, \(name)!")
+}
+
+greetPerson("Taylor")</pre>
+<p>Now, how to pass parameter using closures to functions. This is complicated for two reasons: 1) it can start to look like a sea of colons and parentheses, and 2) the calling convention varies depending on what you're trying to do.</p>
+<p>Let's go back to our <code>runSomeClosure()</code> function. To make it accept one parameter – a closure that itself accepts one parameter - we need to define it like this:</p>
+<pre>func runSomeClosure(closure: (String) -&gt; Void)</pre>
+<p>So, <code>closure</code> is a function that accepts a string and returns nothing. Here is that new function in action:</p>
+<pre>let greetPerson = { (name: String) in
+    print("Hello, \(name)!")
+}
+
+func runSomeClosure(closure: (String) -&gt; Void) {
+    closure("Taylor")
+}
+
+runSomeClosure(greetPerson)</pre>
+<p>This syntax works fine and is often used, but has a significant drawback: when code completion offers you <code>runSomeClosure(closure: (String) -&gt; Void)</code> to use, you have no idea what that string should contain. Closures aren't allowed to use keyword arguments – i.e., you aren't allowed to write <code>(name name: String) in</code> – but you <em>can</em> specify a name when describing a closure parameter, and that name will then be used when calling the closure.</p>
+<p>So, we can rewrite our <code>runSomeClosure()</code> function to this:</p>
+<pre>func runSomeClosure(closure: (name: String) -&gt; Void) {
+    closure(name: "Taylor")
+}
+
+runSomeClosure(greetPerson)</pre>
+<p>Notice that calling <code>runSomeClosure()</code> hasn't changed, but at least the code completion is much more helpful because you'll see that the string has the name <code>name</code>.</p>
+<h3>Closure capturing</h3>
+<p>I've already discussed how closures are reference types, which has cunning implications for captured values: when two variables point at the same closure, they both use the same captured data. That's a fairly advanced topic; here I want to cover just briefly how regular closure capturing works.</p>
+<p>When a closure references a value, it needs to ensure that value will still be around when the closure is run. This can seem like the closure is copying the data, but it's actually more subtle than that. The process is called capturing, and it allows a closure to refer to and modify values that it refers to, even when the original values no longer exist.</p>
+<p>The distinction is important: if the closure <em>copied</em> its values, value type semantics would apply and any changes to a value type inside a closure would be on a unique copy that would not affect the original caller. Instead, closures <em>capture</em> data.</p>
+<p>I realize this all sounds hypothetical, so let me give you a practical example:</p>
+<pre>var counter = 0
+
+var greetPerson = { (name: String) in
+    counter += 1
+    print("Hello, \(name)!")
+}
+
+greetPerson("Taylor")
+greetPerson("Taylor")
+greetPerson("Taylor")
+print(counter)</pre>
+<p>In that code, the <code>greetPerson</code> closure captures the <code>counter</code> integer. Each time <code>greetPerson()</code> is called, that counter goes up by one. Here's the important bit: the <code>counter</code> inside the closure and the <code>counter</code> declared at the beginning refer to the same piece of data – the closure hasn't made its own unique copy. So, that final <code>print()</code> statement will output 3, not 0.</p>
+<h3>Closure shorthand syntax</h3>
+<p>Before we get onto the more advanced stuff, I want to quickly go over the closure shorthand syntax in full so that we're definitely on the same wavelength. When you pass an inline closure to a function, Swift has several techniques in place so you don't have to write as much code.</p>
+<p>To give you a good example, I'm going to use the <code>filter()</code> method of arrays, which accepts a closure with one string parameter, and returns true if that string should be in a new array. The code below filters an array so that we end up with a new array containing everyone whose name starts with Michael:</p>
+<pre>let names = ["Michael Jackson", "Taylor Swift", "Michael Caine", "Adele Adkins", "Michael Jordan"]
+
+let result = names.filter({ (name: String) -&gt; Bool in
+    if name.hasPrefix("Michael") {
+        return true
+    } else {
+        return false;
+    }
+})
+
+print(result.count)</pre>
+<p>From that you can see that <code>filter()</code> expects to receive a closure that accepts a string parameter named <code>name</code> and returns true or false. The closure then checks whether the name has the prefix &quot;Michael&quot; and returns a value.</p>
+<p>Swift knows that the closure being passed to <code>filter()</code> must accept a string and return a boolean, so we can remove it and just use the name of a variable that will be used for each item to filter:</p>
+<pre>let result = names.filter({ name in
+    if name.hasPrefix("Michael") {
+        return true
+    } else {
+        return false;
+    }
+})</pre>
+<p>Next, we can return the result of <code>hasPrefix()</code> directly, like this:</p>
+<pre>let result = names.filter({ name in
+    return name.hasPrefix("Michael")
+})</pre>
+<p>Trailing closures allow us to remove one set of parentheses, which is always welcome:</p>
+<pre>let result = names.filter { name in
+    return name.hasPrefix("Michael")
+}</pre>
+<p>As our closure has only one expression – i.e., now that we've removed a lot of code it only does one thing – we don't even need the <code>return</code> keyword any more. Swift knows our closure must return a boolean, and because we have only one line of code Swift knows that must be the one that returns a value. The code now looks like this:</p>
+<pre>let result = names.filter { name in
+    name.hasPrefix("Michael")
+}</pre>
+<p>Many people stop here, and with good reason: the next step can be quite confusing at first. You see, when this closure is called, Swift automatically creates anonymous parameter names made up of a dollar sign then a number counting up from 0. So, <code>$0</code>, <code>$1</code>, <code>$2</code>, and so on. You aren't allowed to make use names like that in your own code so these tend to stand out!</p>
+<p>These shorthand parameter names map to the parameters that the closure accepts. In this case, that means <code>name</code> is available as <code>$0</code>. You can't mix explicit arguments and anonymous arguments: either you declare a list of the parameters coming in, or you use <code>$0</code> and friends. Both of these two do exactly the same thing:</p>
+<pre>let result = names.filter { name in
+    name.hasPrefix("Michael")
+}
+
+let result = names.filter {
+    $0.hasPrefix("Michael")
+}</pre>
+<p>Notice how you have to remove the <code>name in</code> part when using the anonymous names? Yes, it means even less typing, but at the same time you give up a little bit of readability. I prefer to use shorthand names in my own code, but you should use them only if you want to.</p>
+<p>If you do choose to go with shorthand names, it's common at this point to put the whole method call on a single line, like this:</p>
+<pre>let result = names.filter { $0.hasPrefix("Michael") }</pre>
+<p>When you compare that to the size of the original closure, you have to admit it's a big improvement!</p>
+<h3>Functions as closures</h3>
+<p>Swift really blurs the lines between functions, methods, operators, and closures, which is marvelous because it hides all the compiler complexity from you and leaves developers to do what we do best: make great apps. This blurry behavior can be hard to understand at first, and is even harder to use in day-to-day coding, but I want to show you two examples that I hope will demonstrate just how clever Swift is.</p>
+<p>My first example is this: given an array of strings called <code>words</code>, how can you find out whether any of those words exist in a string named <code>input</code>? One possible solution is to break up <code>input</code> into its own array, then loop over both arrays looking for matches. But Swift gives us a better solution: if you import Foundation, strings get a method called <code>containsString()</code> that accepts another string and returns a boolean. So, this code will return true:</p>
+<pre>let input = "My favorite album is Fearless"
+input.containsString("album")</pre>
+<p>Swift arrays also have two <code>contains()</code> methods: one where you specify an element directly (in our case a string), but another that accepts a closure. That closure needs to accept a string and return a bool, like this:</p>
+<pre>words.contains { (str) -&gt; Bool in
+    return true
+}</pre>
+<p>The brilliant design of Swift's compiler lets us put these two things together: even though <code>containsString()</code> is a Foundation method that comes from <code>NSString</code>, we can pass it into <code>contains()</code> in place of a closure. So, the entire code becomes this:</p>
+<pre>import Foundation
+let words = ["1989", "Fearless", "Red"]
+let input = "My favorite album is Fearless"
+words.contains(input.containsString)</pre>
+<p>The last line is the key. <code>contains()</code> will call its closure once for every element in the array until it finds one that returns true. Passing it <code>input.containsString</code> means that Swift will call <code>input.containsString("1989")</code> and get back false, then it will call <code>input.containsString("Fearless")</code> and get back true – then stop there. Because <code>containsString()</code> has the exact same signature that <code>contains()</code> expects (take a string and return a bool), this works like a charm.</p>
+<p>My second example uses the <code>reduce()</code> method of arrays: you provide a starting value, then give it a function to apply to every item in an array. Each time the function is called you will be given two parameters: the previous value when the function was called (which will be the starting value initially), and the current value to work with. To demonstrate this in action, here's an example of calling <code>reduce()</code> on an array of integers to calculate the sum of them all:</p>
+<pre>let numbers = [1, 3, 5, 7, 9]
+
+numbers.reduce(0) { (int1, int2) -&gt; Int in
+    return int1 + int2
+}</pre>
+<p>When that code runs, it will add the starting value and 1 to produce 1, then 1 and 3 (running total: 4), then 4 and 5 (9), then 9 and 7 (16), then 16 and 9, giving 25 in total.</p>
+<p>This approach is perfectly fine, but Swift has a much simpler and more efficient solution:</p>
+<pre>let numbers = [1, 3, 5, 7, 9]
+let result = numbers.reduce(0, combine: +)</pre>
+<p>When you think about it, <code>+</code> is a function that accepts two integers and returns their sum, so we can remove our whole closure and replace it with a single operator.</p>
+<h3>@noescape</h3>
+<p>The more information you can give the Swift compiler, the more aggressive it can be with its optimizations. A good example of this is the <code>@noescape</code> attribute for closure parameters, which is entirely optional but well worth using when you're able: it tells Swift &quot;this closure I'm sending won't be used again once the function returns.&quot;</p>
+<p>To give you a practical example, here is the definition of the <code>sort()</code> method for arrays:</p>
+<pre>public func sort(@noescape isOrderedBefore: (Self.Generator.Element, Self.Generator.Element) -&gt; Bool) -&gt; [Self.Generator.Element]</pre>
+<p>You can see it accepts a closure as its only parameter, and that closure is marked using the <code>@noescape</code> attribute because <code>sort()</code> won't try to store a copy of that closure for use later – it uses the closure immediately, then is finished with it. Because closures are reference types, this matters: once Swift knows the closure won't be used once the function is finished, it won't need to worry about referencing counting.</p>
+<p>The best way to demonstrate what <code>@noescape</code> does is demonstrate a situation when it cannot be used. Consider the code below:</p>
+<pre>var queuedClosures: [() -&gt; Void] = []
+
+func queueClosure(closure: () -&gt; Void) {
+    queuedClosures.append(closure)
+}
+
+queueClosure({ print("Running closure 1") })
+queueClosure({ print("Running closure 2") })
+queueClosure({ print("Running closure 3") })</pre>
+<p>That creates an array of closures to run and a function that accepts a closure to queue. The function doesn't do anything other than append whatever closure it was given to the array of queued closures. Finally, it calls <code>queueClosure()</code> three times with three simple closures, each one printing a message.</p>
+<p>To finish off that code, we just need to create a new method called <code>executeQueuedClosures()</code> that loops over the queue and executes each closure:</p>
+<pre>func executeQueuedClosures() {
+    for closure in queuedClosures {
+        closure()
+    }
+}
+
+executeQueuedClosures()</pre>
+<p>Let's examine the <code>queueClosure()</code> method more closely: </p>
+<pre>func queueClosure(closure: () -&gt; Void) {
+    queuedClosures.append(closure)
+}</pre>
+<p>It takes a single parameter, which is a closure with no parameters or return value. That closure is then appended to the <code>queuedClosures</code> array. What this means is that the closure we pass in can be used later, in this case when the <code>executeQueuedClosures()</code> function is called. If we tried to make <code>queueClosure()</code> accept a non-escaping closure, like the code below, the compiler would refuse:</p>
+<pre>func queueClosure(@noescape closure: () -&gt; Void) {</pre>
+<p>So: if you write a function that calls a closure immediately then doesn't use it again, mark it as <code>@noescape</code> to enjoy an easy performance boost. If you intend to store the closure for later use, <code>@noescape</code> is not for you.</p>
+<p>As a side note, it's worth adding that if you immediately apply a closure – for example, with a lazy property – Swift automatically makes it <code>@noescape</code> for you.</p>
+<h3>@autoclosure</h3>
+<p>The <code>@autoclosure</code> attribute is similar to <code>@noescape</code> in that you apply it to a closure parameter for a function, but it's used much more rarely. Well, no, that's not strictly true: it's common to <em>call</em> functions that use <code>@autoclosure</code> but uncommon to <em>write</em> functions with it.</p>
+<p>When you use this attribute, it automatically creates a closure from an expression you pass in. When you call a function that uses this attribute, the code you write <em>isn't</em> a closure, but it <em>becomes</em> a closure, which can be a bit confusing – even the official Swift reference guide warns that overusing autoclosures makes your code harder to understand.</p>
+<p>To help you understand how it works, here's a trivial example:</p>
+<pre>func printTest(result: () -&gt; Void) {
+    print("Before")
+    result()
+    print("After")
+}
+
+printTest({ print("Hello") })</pre>
+<p>That code creates a <code>printTest()</code> method, which accepts a closure and calls it. As you can see, the <code>print("Hello")</code> is inside a closure that gets called between &quot;Before&quot; and &quot;After&quot;, so the final output is &quot;Before&quot;, &quot;Hello&quot;, &quot;After&quot;.</p>
+<p>If we used <code>@autoclosure</code> instead, it would allow us to rewrite the code <code>printTest()</code> call so that it doesn't need braces, like this:</p>
+<pre>func printTest(@autoclosure result: () -&gt; Void) {
+    print("Before")
+    result()
+    print("After")
+}
+
+printTest(print("Hello"))</pre>
+<p>These two pieces of code produce identical results thanks to <code>@autoclosure</code>. In the second code example, the <code>print("Hello")</code> won't be executed immediately because it gets wrapped inside a closure for execution later.</p>
+<p>This behavior might seem rather trivial: all this work just removes a pair of braces, and makes the code harder to understand. However, there is one specific place where you'll use them: <code>assert()</code>. This is a Swift function that checks where a condition is true, and causes your app to halt if not.</p>
+<p>That might sound awfully drastic: why would you <em>want</em> your app to crash? You wouldn't, obviously, but when you're <em>testing</em> your app adding calls to <code>assert()</code> help ensure your code is behaving as expected. What you really want is for your assertions to be active in debug mode but disabled in release mode, which is exactly how <code>assert()</code> works.</p>
+<p>Take a look at the three examples below:</p>
+<pre>assert(1 == 1, "Maths failure!")
+assert(1 == 2, "Maths failure!")
+assert(myReallySlowMethod() == false, "The slow method returned false!")</pre>
+<p>The first will return true, so nothing will happen. The second will return false, so the app will halt. The third is an example of <code>assert()</code>'s power: because it uses <code>@autoclosure</code> to wrap your code in a closure, the Swift compiler simply doesn't run the closure when it's in release mode. This means you get all the safety of assertions while debugging, with none of the performance cost in release mode.</p>
+<p>You might be interested to know that autoclosures are also used to handle the <code>&amp;&amp;</code> and <code>||</code> operators. Here is the complete source code for <code>&amp;&amp;</code>, as found in the official Swift compiler:</p>
+<pre>public func &amp;&amp; &lt;T : Boolean, U : Boolean&gt;(lhs: T, @autoclosure rhs: () throws -&gt; U) rethrows -&gt; Bool {
+  return lhs.boolValue ? try rhs().boolValue : false
+}</pre>
+<p>Yes, that has try/catch, throws and rethrows, generics, operator overloading, the ternary operator, and <code>@autoclosure</code> all in one tiny function. Still, I hope you can see through all that cleverness to understand what the code actually does: if <code>lhs.boolValue</code> is true it returns the result of <code>rhs().boolValue</code>, otherwise false. This is short-circuit evaluation in action: Swift doesn't need to run the <code>rhs</code> closure if the <code>lhs</code> code already returned false.</p>
+<p>One last thing on <code>@autoclosure</code>: using it automatically implies <code>@noescape</code>. If this is not the behavior you want, you should use <code>@autoclosure(escaping)</code> instead. For example, we could rewrite the <code>queueClosure()</code> function from earlier like this:</p>
+<pre>func queueClosure(@autoclosure(escaping) closure: () -&gt; Void) {
+    queuedClosures.append(closure)
+}
+
+queueClosure(print("Running closure 1"))</pre>
+<p>Reminder: use autoclosures with care. They can make your code harder to understand, so don't use them just because you want to avoid typing some braces.</p><h2>The ~= operator</h2>
+<p>I know it sounds deeply strange to have a favorite operator, but I do, and it's <code>~=</code>. I love it because of its simplicity. I love it even though it isn't really even needed. I even love its shape – just look at <code>~=</code> and admire its beauty! – so I hope you'll forgive me for taking a couple of minutes to show it to you.</p>
+<p>Enough of me drooling over two simple symbols: what does this actually do? I'm glad you asked! <code>~=</code> is the pattern match operator, and it lets you write code like this:</p>
+<pre>let range = 1...100
+let i = 42
+
+if range ~= i {
+    print("Match!")
+}</pre>
+<p>Like I said, the operator isn't needed because you can code this using the built-in <code>contains()</code> method of ranges. However, it does have a slight syntactic sugar advantage over <code>contains()</code> because it doesn't require an extra set of parentheses:</p>
+<pre>let test1 = (1...100).contains(42)
+let test2 = 1...100 ~= 42</pre>
+<p>I think <code>~=</code> is a lovely example of using operator overloading to declutter everyday syntax.</p>		</div>
+
+		<p style="text-align: center;">Copyright &copy; 2016 Paul Hudson, <a href="https://www.hackingwithswift.com">hackingwithswift.com</a>.<br /> <a href="http://twitter.com/twostraws">You should follow me on Twitter</a>.</p>
+	</body>
+</html>

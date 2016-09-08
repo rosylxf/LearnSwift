@@ -1,0 +1,1054 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Pro Swift</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<link rel="stylesheet" href="book-assets/project.css">
+	</head>
+
+	<body>
+		<p style="text-align: center;"><img id="logo" src="book-assets/logo.png" alt="Pro Swift" width="350" /></p>
+
+		<div id="container">
+<h1>Chapter 1: Syntax</h1><div class="snippet"><p><strong>Wendy Lu (@wendyluwho), iOS engineer at Pinterest</strong></p>
+<p>Use <code>final</code> on properties and methods when you know that a declaration does not need to be overridden. This allows the compiler to replace these dynamically dispatched calls with direct calls. You can even mark an entire class as final by attaching the attribute to the class itself.</p></div><h2>Pattern matching</h2>
+<p><code>Switch/case</code> is not a new concept: insert a value, then take one of several courses of action. Swift's focus on safety adds to the mix a requirement that all possible cases be catered for – something you don't get in C without specific warnings enabled – but that's fairly trivial.</p>
+<p>What makes Swift's <code>switch</code> syntax interesting is its flexible, expressive pattern matching. What makes it <em>doubly</em> interesting is that since Swift's launch most of this pattern matching has been extended elsewhere, so that same flexible, expressive syntax is now available in <code>if</code> conditions and <code>for</code> loops.</p>
+<p>Admittedly, if you jump in at the deep end you're more likely to sink rather than swim, so I want to work up from basic examples. To refresh your memory, here's a basic <code>switch</code> statement:</p>
+<pre>let name = "twostraws"
+
+switch name {
+case "bilbo":
+    print("Hello, Bilbo Baggins!")
+case "twostraws":
+    print("Hello, Paul Hudson!")
+default:
+    print("Authentication failed")
+}</pre>
+<p>It's easy enough when you're working with a simple string, but things get more complicated when working with two or more values. For example, if we wanted to validate a name as well as a password, we would evaluate them as a tuple:</p>
+<pre>let name = "twostraws"
+let password = "fr0st1es"
+
+switch (name, password) {
+case ("bilbo", "bagg1n5"):
+    print("Hello, Bilbo Baggins!")
+case ("twostraws", "fr0st1es"):
+    print("Hello, Paul Hudson!")
+default:
+    print("Who are you?")
+}</pre>
+<p>You can combine the two values into a single tuple if you prefer, like this:</p>
+<pre>let authentication = (name: "twostraws", password: "fr0st1es")
+
+switch authentication {
+case ("bilbo", "bagg1n5"):
+    print("Hello, Bilbo Baggins!")
+case ("twostraws", "fr0st1es"):
+    print("Hello, Paul Hudson!")
+default:
+    print("Who are you?")
+}</pre>
+<p>In this instance, both parts of the tuple must match the <code>case</code> in order for it to be executed.</p>
+<p>When working with tuples, there are some occasions when you want a partial match: you care what some values are but don't care about others. In this situation, use underscores to represent &quot;any value is fine&quot;, like this:</p>
+<pre>let authentication = (name: "twostraws", password: "fr0st1es", ipAddress: "127.0.0.1")
+
+switch authentication {
+case ("bilbo", "bagg1n5", _):
+    print("Hello, Bilbo Baggins!")
+case ("twostraws", "fr0st1es", _):
+    print("Hello, Paul Hudson!")
+default:
+    print("Who are you?")
+}</pre>
+<p>Finally, if you want to match only part of a tuple, but still want to know what the other part was, you should use <code>let</code> syntax.</p>
+<pre>let authentication = (name: "twostraws", password: "fr0st1es")
+
+switch authentication {
+case ("bilbo", _):
+    print("Hello, Bilbo Baggins!")
+case ("twostraws", let password):
+    print("Hello, Paul Hudson: your password was \(password)!")
+default:
+    print("Who are you?")
+}</pre>
+<p>That outlines the basic range of pattern-matching syntax that most developers use. From here on I want to give examples of other useful pattern-matching techniques that are less well known.</p>
+<h3>Matching calculated tuples</h3>
+<p>Tuples are most frequently created using static values, like this:</p>
+<pre>let name = ("Paul", "Hudson")</pre>
+<p>But tuples are like any other data structure in that they can be created using dynamic code. This is particularly useful when you want to narrow the range of values in a tuple down to a smaller subset so that you need only a handful of <code>case</code> statements.</p>
+<p>To give you a practical example, consider the &quot;fizzbuzz&quot; test: write a function that accepts any number, and returns &quot;Fizz&quot; if the number is evenly divisible by 3, &quot;Buzz&quot; if it's evenly divisible by 5, &quot;FizzBuzz&quot; if its evenly divisible by 3 <em>and</em> 5, or the original input number in other cases.</p>
+<p>We can calculate a tuple to solve this problem, then pass that tuple into a <code>switch</code> block to create the correct output. Here's the code:</p>
+<pre>func fizzbuzz(number number: Int) -&gt; String {
+    switch (number % 3 == 0, number % 5 == 0) {
+    case (true, false):
+        return "Fizz"
+    case (false, true):
+        return "Buzz"
+    case (true, true):
+        return "FizzBuzz"
+    case (false, false):
+        return String(number)
+    }
+}
+
+print(fizzbuzz(number: 15))</pre>
+<p>This approach breaks down a large input space – any number – into simple combinations of true and false, and we then use tuple pattern matching in the case statements to select the correct output.</p>
+<h3>Loops</h3>
+<p>As you've seen, pattern matching using part of a tuple is easy enough: you either tell Swift what should be matched, use <code>let</code> to bind a value to a local constant, or use <code>_</code> to signal that you don't care what a value is.</p>
+<p>We can use this same approach when working with loops, which allows us to loop over items only if they match the criteria we specify. Let's start with a basic example again:</p>
+<pre>let twostraws = (name: "twostraws", password: "fr0st1es")
+let bilbo = (name: "bilbo", password: "bagg1n5")
+let taylor = (name: "taylor", password: "fr0st1es")
+
+let users = [twostraws, bilbo, taylor]
+
+for user in users {
+    print(user.name)
+}</pre>
+<p>That creates an array of tuples, then loops over each one and prints its <code>name</code> value.</p>
+<p>Just like the <code>switch</code> blocks we looked at earlier, we can use <code>case</code> with a tuple to match specific values inside the tuples. Add this code below the previous loop:</p>
+<pre>for case ("twostraws", "fr0st1es") in users {
+    print("User twostraws has the password fr0st1es")
+}</pre>
+<p>We also have identical syntax for binding local constants to the values of each tuple, like this:</p>
+<pre>for case (let name, let password) in users {
+    print("User \(name) has the password \(password)")
+}</pre>
+<p>Usually, though, it's preferable to re-arrange the <code>let</code> to this:</p>
+<pre>for case let (name, password) in users {
+    print("User \(name) has the password \(password)")
+}</pre>
+<p>The magic comes when you combine these two approaches, and again is syntactically identical to a <code>switch</code> example we already saw:</p>
+<pre>for case let (name, "fr0st1es") in users {
+    print("User \(name) has the password \"fr0st1es\"")
+}</pre>
+<p>That filters the <code>users</code> array so that only items with the password &quot;fr0st1es&quot; will be used in the loop, then creates a <code>name</code> constant inside the loop for you to work with.</p>
+<p>Don't worry if you're staring at <code>for case let</code> and seeing three completely different keywords mashed together: it's not obvious what it does until someone explains it to you, and it will take a little time to sink in. But we're only getting started…</p>
+<h3>Matching optionals</h3>
+<p>Swift has two ways of matching optionals, and you're likely to meet both. First up is using <code>.Some</code> and <code>.None</code> to match &quot;has a value&quot; and &quot;has no value&quot;, and in the code below this is used to check for values and bind them to local constants:</p>
+<pre>let name: String? = "twostraws"
+let password: String? = "fr0st1es"
+
+switch (name, password) {
+case let (.Some(name), .Some(password)):
+    print("Hello, \(name)")
+case let (.Some(name), .None):
+    print("Please enter a password.")
+default:
+    print("Who are you?")
+}</pre>
+<p>That code is made more confusing because <code>name</code> and <code>password</code> are used for the input constants as well as the locally bound constants. They are different things, though, which is why <code>print("Hello, \(name)")</code> won't print <code>Hello, Optional("twostraws")</code> – the <code>name</code> being used is the locally bound unwrapped optional.</p>
+<p>If it's easier to read, here's the same code with different names used for the matched constants:</p>
+<pre>switch (name, password) {
+case let (.Some(matchedName), .Some(matchedPassword)):
+    print("Hello, \(matchedName)")
+case let (.Some(matchedName), .None):
+    print("Please enter a password.")
+default:
+    print("Who are you?")
+}</pre>
+<p>The second way Swift matches optionals is using much simpler syntax, although if you have a fear of optionals this might only make it worse:</p>
+<pre>switch (name, password) {
+case let (name?, password?):
+    print("Hello, \(name)")
+case let (username?, nil):
+    print("Please enter a password.")
+default:
+    print("Who are you?")
+}</pre>
+<p>This time the question marks work in a similar way as optional chaining: continue only if a value was found.</p>
+<p>Both of these methods work equally well in <code>for case let</code> code. The code below uses them both to filter out <code>nil</code> values in a loop:</p>
+<pre>import Foundation
+let data: [AnyObject?] = ["Bill", nil, 69, "Ted"]
+
+for case let .Some(datum) in data {
+    print(datum)
+}
+
+for case let datum? in data {
+    print(datum)
+}</pre>
+<h3>Matching ranges</h3>
+<p>You're probably already using pattern matching with ranges, usually with code something like this:</p>
+<pre>let age = 36
+
+switch age {
+case 0 ..&lt; 18:
+    print("You have the energy and time, but not the money")
+case 18 ..&lt; 70:
+    print("You have the energy and money, but not the time")
+default:
+    print("You have the time and money, but not the energy")
+}</pre>
+<p>A very similar syntax is also available for regular conditional statements – we could rewrite that code like this:</p>
+<pre>if case 0 ..&lt; 18 = age {
+    print("You have the energy and time, but not the money")
+} else if case 18 ..&lt; 70 = age {
+    print("You have the energy and money, but not the time")
+} else {
+    print("You have the time and money, but not the energy")
+}</pre>
+<p>That produces identical results to the <code>switch</code> block while using similar syntax, but I'm not a big fan of this approach. The reason for my dislike is simple readability: I don't think &quot;if case 0 up to 18 equals age&quot; makes sense if you don't already know what it means. A much nicer approach is to use the pattern match operator, <code>~=</code>, which would look like this:</p>
+<pre>if 0 ..&lt; 18 ~= age {
+    print("You have the energy and time, but not the money")
+} else if 18 ..&lt; 70 ~= age {
+    print("You have the energy and money, but not the time")
+} else {
+    print("You have the time and money, but not the energy")
+}</pre>
+<p>Now the condition reads &quot;if the range 0 up to 18 matches age&quot;, which I think makes a lot more sense.</p>
+<p>An even cleaner solution becomes clear when you remember that <code>0 ..&lt; 18</code> creates an instance of a <code>Range</code> struct, which has its own set of methods. Right now, its <code>contains()</code> method is particularly useful: it's longer to type than <code>~=</code> but it's significantly easier to understand:</p>
+<pre>if (0 ..&lt; 18).contains(age) {
+    print("You have the energy and time, but not the money")
+} else if (18 ..&lt; 70).contains(age) {
+    print("You have the energy and money, but not the time")
+} else {
+    print("You have the time and money, but not the energy")
+}</pre>
+<p>You can combine this range matching into our existing tuple matching code, like this:</p>
+<pre>let user = (name: "twostraws", password: "fr0st1es", age: 36)
+
+switch user {
+case let (name, _, 0 ..&lt; 18):
+    print("\(name) has the energy and time, but no money")
+case let (name, _, 18 ..&lt; 70):
+    print("\(name) has the money and energy, but no time")
+case let (name, _, _):
+    print("\(name) has the time and money, but no energy")
+}</pre>
+<p>That last case binds the user's name to a local constant called <code>name</code> irrespective of the two other values in the tuple. This is a catch all, but because Swift looks for the <em>first</em> matching case this won't conflict with the other two in the <code>switch</code> block.</p>
+<h3>Matching enums and associated values</h3>
+<p>In my experience, quite a few people don't really understand enums and associated values, and so they struggle to make use of them with pattern matching. There's a whole chapter on enums later in the book, so if you're not already comfortable with enums and associated values you might want to pause here and read that chapter first.</p>
+<p>Basic enum matching looks like this:</p>
+<pre>enum WeatherType {
+    case Cloudy
+    case Sunny
+    case Windy
+}
+
+let today = WeatherType.Cloudy
+
+switch today {
+case .Cloudy:
+    print("It's cloudy")
+case .Windy:
+    print("It's windy")
+default:
+    print("It's sunny")
+}</pre>
+<p>You'll also have used enums in basic conditional statements, like this:</p>
+<pre>if today == .Cloudy {
+    print("It's cloudy")
+}</pre>
+<p>As soon as you add associated values, things get more complicated because you can use them, filter on them, or ignore them depending on your goal.</p>
+<p>First up, the easiest option: creating an associated value but ignoring it:</p>
+<pre>enum WeatherType {
+    case Cloudy(coverage: Int)
+    case Sunny
+    case Windy
+}
+
+let today = WeatherType.Cloudy(coverage: 100)
+
+switch today {
+case .Cloudy:
+    print("It's cloudy")
+case .Windy:
+    print("It's windy")
+default:
+    print("It's sunny")
+}</pre>
+<p>Using this approach, the actual <code>switch</code> code is unchanged.</p>
+<p>Second: creating an associated value and using it. This uses the same local constant bind we've seen several times now:</p>
+<pre>enum WeatherType {
+    case Cloudy(coverage: Int)
+    case Sunny
+    case Windy
+}
+
+let today = WeatherType.Cloudy(coverage: 100)
+
+switch today {
+case .Cloudy(let coverage):
+    print("It's cloudy with \(coverage)% coverage")
+case .Windy:
+    print("It's windy")
+default:
+    print("It's sunny")
+}</pre>
+<p>Lastly: creating an associated type, binding a local constant to it, but also using that binding to filter for specific values. This uses the <code>where</code> keyword to create a requirements clause that clarifies what you're looking for. In our case, the code below prints two different messages depending on the associated value that is used with <code>Cloudy</code>:</p>
+<pre>enum WeatherType {
+    case Cloudy(coverage: Int)
+    case Sunny
+    case Windy
+}
+
+let today = WeatherType.Cloudy(coverage: 100)
+
+switch today {
+case .Cloudy(let coverage) where coverage &lt; 100:
+    print("It's cloudy with \(coverage)% coverage")
+case .Cloudy(let coverage) where coverage == 100:
+    print("You must live in the UK")
+case .Windy:
+    print("It's windy")
+default:
+    print("It's sunny")
+}</pre>
+<p>Now, as promised I'm building up from basic examples, but if you're ready I want to show you how to combine two of these techniques together: associated values and range matching. The code below now prints three different messages: one when coverage is 0, one when it's 100, and another using a range from 1 to 99:</p>
+<pre>enum WeatherType {
+    case Cloudy(coverage: Int)
+    case Sunny
+    case Windy
+}
+
+let today = WeatherType.Cloudy(coverage: 100)
+
+switch today {
+case .Cloudy(let coverage) where coverage == 0:
+    print("You must live in Death Valley")
+case .Cloudy(let coverage) where (1...99).contains(coverage):
+    print("It's cloudy with \(coverage)% coverage")
+case .Cloudy(let coverage) where coverage == 100:
+    print("You must live in the UK")
+case .Windy:
+    print("It's windy")
+default:
+    print("It's sunny")
+}</pre>
+<p>If you want to match associated values in a loop, adding a <code>where</code> clause is the wrong approach. In fact, this kind of code won't even compile:</p>
+<pre>let forecast: [WeatherType] = [.Cloudy(coverage: 40), .Sunny, .Windy, .Cloudy(coverage: 100), .Sunny]
+
+for day in forecast where day == .Cloudy {
+    print(day)
+}</pre>
+<p>That code would be fine without associated values, but because the associated value has meaning the <code>where</code> clause isn't up to the job – it has no way to say &quot;and bind the associated value to a local constant.&quot; Instead, you're back to <code>case let</code> syntax, like this:</p>
+<pre>let forecast: [WeatherType] = [.Cloudy(coverage: 40), .Sunny, .Windy, .Cloudy(coverage: 100), .Sunny]
+
+for case let .Cloudy(coverage) in forecast {
+    print("It's cloudy with \(coverage)% coverage")
+}</pre>
+<p>If you know the associated value and want to use it as a filter, the syntax is almost the same:</p>
+<pre>let forecast: [WeatherType] = [.Cloudy(coverage: 40), .Sunny, .Windy, .Cloudy(coverage: 100), .Sunny]
+
+for case .Cloudy(40) in forecast {
+    print("It's cloudy with 40% coverage")
+}</pre>
+<h3>Matching types</h3>
+<p>You should already know the <code>is</code> keyword for matching, but you might not know that it can be used as pattern matching in loops and <code>switch</code> blocks. I think the syntax is quite pleasing, so I want to demonstrate it just briefly:</p>
+<pre>let view: AnyObject = UIButton()
+
+switch view {
+case is UIButton:
+    print("Found a button")
+case is UILabel:
+    print("Found a label")
+case is UISwitch:
+    print("Found a switch")
+case is UIView:
+    print("Found a view")
+default:
+    print("Found something else")
+}</pre>
+<p>I've used UIKit as an example because you should already know that <code>UIButton</code> inherits from <code>UIView</code>, and I need to give you a big warning…</p>
+<p><strong>Important:</strong> Swift will take the first matching case it finds, and <code>is</code> returns true if an object is a specific type or one of its parent classes. So, the above code will print &quot;Found a button&quot;, whereas the below code will print &quot;Found a view&quot;:</p>
+<pre>let view: AnyObject = UIButton()
+
+switch view {
+case is UIView:
+    print("Found a view")
+case is UIButton:
+    print("Found a button")
+case is UILabel:
+    print("Found a label")
+case is UISwitch:
+    print("Found a switch")
+default:
+    print("Found something else")
+}</pre>
+<p>To give you a more useful example, you can use this approach to loop over all subviews in an array and filter for buttons:</p>
+<pre>for label in view.subviews where label is UILabel {
+    print("Found a label with frame \(label.frame)")
+}</pre>
+<p>Even though <code>where</code> ensures only <code>UIButton</code> objects are processed in the loop, it doesn't actually do any typecasting. This means if you wanted to access a label-specific property of <code>label</code>, such as its <code>text</code> property, you need to typecast it yourself. In this situation, using <code>for case let</code> instead is easier, as this filters and typecasts in one:</p>
+<pre>for case let label as UILabel in view.subviews {
+    print("Found a label with text \(label.text)")
+}</pre>
+<h3>Using the where keyword</h3>
+<p>To wrap up pattern matching, I want to demonstrate a couple of interesting ways to use <code>where</code> clauses so that you can get an idea of what it's capable of.</p>
+<p>First, an easy one: loop over an array of numbers and print only the odd ones. This is trivial using <code>where</code> and modulus, but it demonstrates that your <code>where</code> clause can contain calculations:</p>
+<pre>for number in numbers where number % 2 == 1 {
+    print(number)
+}</pre>
+<p>You can also calls methods, like this:</p>
+<pre>let celebrities = ["Michael Jackson", "Taylor Swift", "Michael Caine", "Adele Adkins", "Michael Jordan"]
+
+for name in celebrities where !name.hasPrefix("Michael") {
+    print(name)
+}</pre>
+<p>That will print &quot;Taylor Swift&quot; and &quot;Adele Adkins&quot;. If you want to make your <code>where</code> clause more complicated, just add operators such as <code>&amp;&amp;</code>:</p>
+<pre>let celebrities = ["Michael Jackson", "Taylor Swift", "Michael Caine", "Adele Adkins", "Michael Jordan"]
+
+for name in celebrities where name.hasPrefix("Michael") &amp;&amp; name.characters.count == 13 {
+    print(name)
+}</pre>
+<p>That will print &quot;Michael Caine&quot;.</p>
+<p>While it's possible to use <code>where</code> to strip out optionals, I wouldn't recommend it. Consider the example below:</p>
+<pre>let celebrities: [String?] = ["Michael Jackson", nil, "Michael Caine", nil, "Michael Jordan"]
+
+for name in celebrities where name != nil {
+    print(name)
+}</pre>
+<p>That certainly works, but it does nothing about the optionality of the strings in the loop so it prints out this:</p>
+<pre>Optional("Michael Jackson")
+Optional("Michael Caine")
+Optional("Michael Jordan")</pre>
+<p>Instead, use <code>for case let</code> to handle optionality, and use <code>where</code> to focus on filtering values. Here's the preferred way of writing that loop:</p>
+<pre>for case let name? in celebrities {
+    print(name)
+}</pre>
+<p>When that runs, <code>name</code> will only contain the strings that had values, so its output will be:</p>
+<pre>Michael Jackson
+Michael Caine
+Michael Jordan</pre><h2>Nil coalescing</h2>
+<p>Swift optionals are one of the fundamental ways it guarantees program safety: a variable can only be used if it definitely has a value. The problem is that optionals make your code a bit harder to read and write, because you need to unwrap them safely.</p>
+<p>One alternative is to explicitly unwrap optionals using <code>!</code>. This is also known as the &quot;crash operator&quot; because if you use <code>!</code> with an optional that is nil, your program will die immediately and your users will be baying for blood.</p>
+<p>A smarter alternative is the nil coalescing operator, <code>??</code>, which allows you to access an optional and provide a default value if the optional is nil.</p>
+<p>Consider this optional:</p>
+<pre>let name: String? = "Taylor"</pre>
+<p>That's a constant called <code>name</code> that contains either a string or nil. If you try to print that using <code>print(name)</code> you'll see <code>Optional("Taylor")</code> rather than just &quot;Taylor&quot;, which isn't really what you want.</p>
+<p>Using nil coalescing allows us to use an optional's value or provide a default value if it's nil. So, you could write this:</p>
+<pre>let name: String? = "Taylor"
+let unwrappedName = name ?? "Anonymous"
+print(unwrappedName)</pre>
+<p>That will print &quot;Taylor&quot;: <code>name</code> was a <code>String?</code>, but <code>unwrappedName</code> is guaranteed to be a regular <code>String</code> – not optional – because of the nil coalescing operator. To see the default value in action, try this instead:</p>
+<pre>let name: String? = nil
+let unwrappedName = name ?? "Anonymous"
+print(unwrappedName)</pre>
+<p>That will now print &quot;Anonymous&quot;, because the default value is used instead.</p>
+<p>Of course, you don't need a separate constant when using nil coalescing – you can write it inline, like this:</p>
+<pre>let name: String? = "Taylor"
+print(name ?? "Anonymous")</pre>
+<p>As you can imagine, nil coalescing is great for ensuring sensible values are in place before you use them, but it's particularly useful in removing some optionality from your code. For example:</p>
+<pre>func returnsOptionalName() -&gt; String? {
+    return nil
+}
+
+let name = returnsOptionalName() ?? "Anonymous"
+print(name)</pre>
+<p>Using this approach, <code>name</code> is a <code>String</code> rather than a <code>String?</code> because it's guaranteed to have a value.</p>
+<p>So far, so straightforward. However, nil coalescing gets more interesting when you combine it with the <code>try?</code> keyword.</p>
+<p>Consider a simple app that lets a user type and save text. When the app runs, it wants to load whatever the user typed previously, so it probably uses code like this:</p>
+<pre>do {
+    let savedText = try String(contentsOfFile: "saved.txt")
+    print(savedText)
+} catch {
+    print("Failed to load saved text.")
+}</pre>
+<p>If the file exists, it will be loaded into the <code>savedText</code> constant. If not, the <code>contentsOfFile</code> initializer will throw an exception, and &quot;Failed to load saved text will be printed&quot;. In practice, you'd want to extend this so that <code>savedText</code> always has a value, so you end up with something like this:</p>
+<pre>let savedText: String
+
+do {
+    savedText = try String(contentsOfFile: "saved.txt")
+} catch {
+    print("Failed to load saved text.")
+    savedText = "Hello, world!"
+}
+
+print(savedText)</pre>
+<p>That's a lot of code and it doesn't really accomplish very much. Fortunately, there's a better way: nil coalescing. Remember, <code>try</code> has three variants: <code>try</code> attempts some code and might throw an exception, <code>try!</code> attempts some code and crashes your app if it fails, and <code>try?</code> attempts some code and returns nil if the call failed.</p>
+<p>That last one is where nil coalescing steps up to the plate, because this exactly matches our previous examples: we want to work with an optional value, and provide a sensible default if the optional is nil. In fact, using nil coalescing we can rewrite all that into just two lines of code:</p>
+<pre>let savedText = (try? String(contentsOfFile: "saved.txt")) ?? "Hello, world!"
+print(savedText)</pre>
+<p>That means &quot;try loading the file, but if loading fails use this default text instead&quot; – a neater solution and much more readable.</p>
+<p>Combining <code>try?</code> with nil coalescing is perfect for situations when a failed <code>try</code> isn't an error, and I think you'll find this pattern useful in your own code.</p><h2>Guard</h2>
+<p>The <code>guard</code> keyword has been with us since Swift 2.0, but because it does four things in one you'd be forgiven for not using it fully.</p>
+<p>The first use is the most obvious: <code>guard</code> is used for early returns, which means you exit a function if some preconditions are not satisfied. For example, we could write a rather biased function to give an award to a named person:</p>
+<pre>func giveAwardTo(name: String) {
+    guard name == "Taylor Swift" else {
+        print("No way!")
+        return
+    }
+
+    print("Congratulations, \(name)!")
+}
+
+giveAwardTo("Taylor Swift")</pre>
+<p>Using that <code>guard</code> statement in the <code>giveAwardTo()</code> method ensures that only Taylor Swift wins awards. It's biased like I said, but the precondition is clear and this code will only run when requirements I have put in place are satisfied.</p>
+<p>This initial example looks almost identical to using <code>if</code>, but <code>guard</code> has one massive advantage: it makes your intention clear, not only to people but also to the compiler. This is an early return, meaning that you want to exit the method if your preconditions aren't satisfied. Using <code>guard</code> makes that clear: this condition isn't part of the functionality of the method, it's just there to ensure the actual code is safe to run. It's also clear to the compiler, meaning that if you remove the <code>return</code> statement your code will no longer build – Swift knows this is an early return, so it will not let you forget to exit.</p>
+<p>The second use of guard is a happy side effect of the first: using <code>guard</code> and early returns allows you to reduce your indent level. Some developers believe very strongly that early returns must never be used, and instead each function should return from only one place. This forces extra indents in the main body of your function code, something like this:</p>
+<pre>func giveAwardTo(name: String) -&gt; String {
+    let message: String
+
+    if name == "Taylor Swift" {
+        message = "Congratulations, \(name)!"
+    } else {
+        message = "No way!"
+    }
+
+    return message
+}
+
+giveAwardTo("Taylor Swift")</pre>
+<p>With <code>guard</code>, you get your preconditions resolved immediately, and lose the extra indent – hurray for neat code!</p>
+<p>The third thing that <code>guard</code> brings us is a visibility increase for the happy path. This is a common concept in software design and testing, and refers to the path that your code will take when no exceptions or errors happen. Thanks to <code>guard</code>, common errors are removed immediately, and the remainder of your code might all be the happy path.</p>
+<p>That's all the easy stuff out of the way, but <code>guard</code> still has one more feature I want to discuss, and it's an important differentiator between <code>guard</code> and <code>if</code>: when you use <code>guard</code> to check and unwrap an optional, that optional stays in scope.</p>
+<p>To demonstrate this, I'm going to rewrite the <code>giveAwardTo()</code> method so that it takes an optional string:</p>
+<pre>func giveAwardTo(name: String?) {
+    guard let winner = name else {
+        print("No one won the award")
+        return
+    }
+
+    print("Congratulations, \(winner)!")
+}</pre>
+<p>With a regular <code>if-let</code>, the <code>winner</code> constant would only be usable inside the braces that belong to <code>guard</code>. However, <code>guard</code> keeps its optional unwraps in scope, so <code>winner</code> stays around for the second <code>print()</code> statement. This code reads &quot;try to unwrap name into winner so I can use it, but if you can't then print a message and exit.&quot;</p>
+<p>There's one last feature of <code>guard</code> I want to touch on, but it's not new. Instead, it's just a different way of using what you already know. The feature is this: <code>guard</code> lets you exit <em>any</em> scope if preconditions fail, not just functions and methods. This means you can exit a <code>switch</code> block or a loop by using guard, and it carries the same meaning: the contents of this scope should only be executed if these preconditions are true.</p>
+<p>To give you a simple example, this loop counts from 1 to 100, printing out all the numbers that are evenly divisible by 8:</p>
+<pre>for i in 1...100 {
+    guard i % 8 == 0 else { continue }
+
+    print(i)
+}</pre>
+<p>Can you rewrite that using <code>where</code>? Give it a try – it's easier than you think!</p><h2>Lazy loading</h2>
+<p>Lazy loading is one of the most important, system-wide performance optimizations that Swift coders work with. It's endemic in iOS, as anyone who has tried to manipulate a view controller's view before it's shown can tell you. Objective-C didn't have a concept of lazy properties, so you had to write your own boilerplate code each time you wanted this behavior. Happily, Swift has it baked right in, so you can claim immediate performance benefits with hardly any code.</p>
+<p>But first: a reminder of what lazy properties are. Consider this class:</p>
+<pre>class Singer {
+    let name: String
+
+    init(name: String) {
+        self.name = name
+    }
+
+    func reversedName() -&gt; String {
+        return "\(name.uppercaseString) backwards is \(String(name.uppercaseString.characters.reverse()))!"
+    }
+}
+
+let taylor = Singer(name: "Taylor Swift")
+print(taylor.reversedName())</pre>
+<p>That will print &quot;TAYLOR SWIFT backwards is TFIWS ROLYAT!&quot; when run.</p>
+<p>So each <code>Singer</code> has a single property called <code>name</code>, and a single method that does a small amount of processing to that property. Obviously in your own code these functions are likely to do more significant work, but I'm trying to keep it simple here.</p>
+<p>Every time you want to print the message &quot;TAYLOR SWIFT backwards is TFIWS ROLYAT!&quot; you need to call the <code>reversedName()</code> method – the work it does isn't stored, and if that work is non-trivial then calling the method repeatedly is wasteful.</p>
+<p>An alternative is to create an additional property to stored <code>reversedName</code> so that it's calculated only once, like this:</p>
+<pre>class Singer {
+    let name: String
+    let reversedName: String
+
+    init(name: String) {
+        self.name = name
+        reversedName = "\(name.uppercaseString) backwards is \(String(name.uppercaseString.characters.reverse()))!"
+    }
+}
+
+let taylor = Singer(name: "Taylor Swift")
+print(taylor.reversedName)</pre>
+<p>That's a performance improvement for situations when you use <code>reversedName</code> a lot, but now causes your code to run <em>slower</em> if you never use <code>reversedName</code> – it gets calculated regardless of whether it's used, whereas when <code>reversedName()</code> was a method it would only be calculated when called.</p>
+<p>Lazy properties are the middle ground: they are properties that are calculated only once and stored, but never calculated if they aren't used. So if your code uses a lazy property repeatedly you only pay the performance cost once, and if they are never used then the code is never run. It's a win-win!</p>
+<h3>Lazy closures</h3>
+<p>The easiest way to get started with the <code>lazy</code> keyword is using closures. Yes, I know it's rare to see &quot;closures&quot; and &quot;easiest&quot; in the same sentence, but there's a reason this book isn't called &quot;Newbie Swift&quot;!</p>
+<p>The syntax here is a little unusual at first:</p>
+<pre>lazy var yourVariableName: SomeType = {
+    return SomeType(whatever: "foobar")
+}()</pre>
+<p>Yes, you need to explicitly declare the type. Yes, you need that <code>=</code> sign. Yes, you need the parentheses after the closing brace. It's a little unusual, like I said, but it's all there for a reason: you're creating the closure, applying it immediately (rather than later on), and assigning its result back to <code>yourVariableName</code>.</p>
+<p>Using this approach, we can convert our <code>reversedName()</code> method into a lazy property like this:</p>
+<pre>class Singer {
+    let name: String
+
+    init(name: String) {
+        self.name = name
+    }
+
+    lazy var reversedName: String = {
+        return "\(self.name.uppercaseString) backwards is \(String(self.name.uppercaseString.characters.reverse()))!"
+    }()
+}
+
+let taylor = Singer(name: "Taylor Swift")
+print(taylor.reversedName)</pre>
+<p>Note: as it's now a property rather than a method, we need to use <code>print(taylor.reversedName)</code> rather than <code>print(taylor.reversedName())</code> to access the value.</p>
+<p>That's it: the property is now lazy, which means the code inside the closure will be executed only the first time we read the <code>reversedName</code> property.</p>
+<p>&quot;But Paul,&quot; I hear you say, &quot;you're using <code>self</code> inside a closure that's owned by the object – why are you giving me strong reference cycles?&quot; Don't worry: this code is quite safe. Swift is smart enough to realize what's going on, and no reference cycle will be created.</p>
+<p>Under the hood, any closure like this – one that is immediately applied – is considered to be &quot;non-escaping&quot;, which in our situation means it won't be used anywhere else. That is, this closure can't be stored as a property and called later on. Not only does this automatically ensure <code>self</code> is considered to be <code>unowned</code>, but it also enables the Swift compiler to make some extra optimizations because it has more information about the closure.</p>
+<h3>Lazy functions</h3>
+<p>A common complaint people have when using <code>lazy</code> is that it clutters up their code: rather than having a neat separation of properties and methods, lazy properties become a gray area where properties and functionality mix together. There is a simple solution to this: create methods to separate your lazy properties from the code they rely on.</p>
+<p>If you want to use this approach, I suggest you mark as private the separate method you create so that it doesn't get used by accident. Something like this ought to do the trick:</p>
+<pre>class Singer {
+    let name: String
+
+    init(name: String) {
+        self.name = name
+    }
+
+    lazy var reversedName: String = self.getReversedName()
+
+    private func getReversedName() -&gt; String {
+        return "\(self.name.uppercaseString) backwards is \(String(self.name.uppercaseString.characters.reverse()))!"
+    }
+}
+
+let taylor = Singer(name: "Taylor Swift")
+print(taylor.reversedName)</pre>
+<h3>Lazy singletons</h3>
+<p>Singletons are one of several common programming pattern that I'm not particularly fond of. If you're not familiar with them, a singleton is a value or object that is designed (and coded) to be created only once, and shared across a program. For example, if your app uses a logger, you might create a logger object once when the app runs, and have all your other code use that shared instance.</p>
+<p>The reason I'm not a big fan of singletons is a simple one: they are all too often used like global variables. Many people will preach that global variables are bad then happily abuse singletons in much the same way, which is just sloppy.</p>
+<p>That being said, there are good reasons for using singletons, and indeed Apple uses them on occasion. If your object literally can only exist once – such as an instance of <code>UIApplication</code> – then singletons make sense. On iOS, things like <code>UIDevice</code> make sense as singletons, again because they can exist only once. Singletons are also useful (at least compared to global variables!) if you want to add extra code when they are used.</p>
+<p>So: singletons have a place, as long as you consider their use carefully. If you think singletons are the perfect choice for you, I have some good news: Swift makes singletons insanely easy.</p>
+<p>To give you a practical example, we're going to create a <code>Singer</code> class that will have a <code>MusicPlayer</code> class as a property. This needs to be a singleton, because no matter how many singers our app tracks, we want all their songs to go through the same music player so that music doesn't overlap.</p>
+<p>Here's the <code>MusicPlayer</code> class:</p>
+<pre>class MusicPlayer {
+    init() {
+        print("Ready to play songs!")
+    }
+}</pre>
+<p>It doesn't do anything other than print a message when it's created.</p>
+<p>Here's the basic <code>Singer</code> class that also does nothing other than print a message when it's created:</p>
+<pre>class Singer {
+    init() {
+        print("Creating a new singer")
+    }
+}</pre>
+<p>Now for the singleton: if we want to give our <code>Singer</code> class a <code>MusicPlayer</code> singleton property, we need to add just one line of code inside the <code>Singer</code> class:</p>
+<pre>static let musicPlayer = MusicPlayer()</pre>
+<p>That's it. The <code>static</code> part means this property is shared by the class rather than instances of the class, meaning that you use <code>Singer.musicPlayer</code> rather than <code>taylor.musicPlayer</code>. The <code>let</code> part of course means that it's a constant.</p>
+<p>You might be wondering what all this has to do with lazy properties, and it's time to find out – put this code into a playground:</p>
+<pre>class MusicPlayer {
+    init() {
+        print("Ready to play songs!")
+    }
+}
+
+class Singer {
+    static let musicPlayer = MusicPlayer()
+
+    init() {
+        print("Creating a new singer")
+    }
+}
+
+let taylor = Singer()</pre>
+<p>When it runs, the output is &quot;Creating a new singer&quot; – the &quot;Ready to play songs!&quot; message won't appear. If you add one more line to the end of your playground, only then will the message appear:</p>
+<pre>Singer.musicPlayer</pre>
+<p>Yes: Swift all <code>static let</code> singletons are automatically lazy – they only get created when they are needed. It's so easy to do, and yet perfectly efficient too. Thanks, Swift team!</p>
+<h3>Lazy sequences</h3>
+<p>Now that you understand lazy properties, I want to explain briefly the usefulness of lazy sequences. These are similar to lazy properties in that they delay work until necessary, but they aren't <em>quite</em> as efficient as you'll see shortly.</p>
+<p>Let's start with a trivial example: the Fibonacci sequence. As a reminder, this is a sequence of numbers starting with 0 and 1, where every following number is the sum of adding the previous two. So the sequence goes 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, and so on.</p>
+<p>We can write a naïve function that calculates the Fibonacci number at a particular point in the sequence like this:</p>
+<pre>func fibonacci(num: Int) -&gt; Int {
+    if num &lt; 2 {
+        return num
+    } else {
+        return fibonacci(num - 1) + fibonacci(num - 2)
+    }
+}</pre>
+<p>This is a recursive function: it calls itself. It's a naïve implementation because it doesn't cache the results as it goes, which means all the adding done by <code>fibonacci(num - 1)</code> won't get re-used by <code>fibonacci(num - 2)</code> even though it could be. However, this implementation is perfect for demonstrating the usefulness (and drawbacks!) of lazy sequences.</p>
+<p>Open a playground and add this code:</p>
+<pre>func fibonacci(num: Int) -&gt; Int {
+    if num &lt; 2 {
+        return num
+    } else {
+        return fibonacci(num - 1) + fibonacci(num - 2)
+    }
+}
+
+let fibonacciSequence = (0...20).map(fibonacci)
+print(fibonacciSequence[10])</pre>
+<p>That calculates the first 21 numbers of the Fibonacci sequence, and prints out the 11th: 55. I asked you to put this in a playground because Xcode will show you how often the code is executed, and you'll see the <code>return num</code> line being called 28,656 times – a huge amount of work. If you try using <code>0...21</code> for the range – just one number higher! – you'll see that number goes up to 46,367 times.</p>
+<p>Like I said, it's a naïve implementation, and it really doesn't scale well. Can you imagine using <code>0...199</code>? And what if you only need a few numbers rather than all of them?</p>
+<p>This is where lazy sequences come into play: you give it a sequence to work with and tell it what code you want to run just like you would with a normal sequence, but now that code is executed on demand as you access items. So, we could prepare to generate the first 200 numbers in the Fibonacci, then only use the 20th value just by using the <code>lazy</code> property of a sequence:</p>
+<pre>let fibonacciSequence = (0...199).lazy.map(fibonacci)
+print(fibonacciSequence[19])</pre>
+<p>That takes a small amount of time to run, because all the other calculations are never run – no time is wasted.</p>
+<p>However, as clever as lazy sequences are, they do have a drawback that lazy properties do not: they have no memoization. This is a common optimization technique that stores the result of computationally expensive code so that it doesn't need to be created again. This is essentially what regular lazy variables offer us: a guarantee not only that a property won't be created if it isn't used, but that it won't be created repeatedly when used again and again.</p>
+<p>As I said, lazy sequences have <em>no</em> memoization, which means requesting the same data twice will require the work to be done twice. Try this now:</p>
+<pre>let fibonacciSequence = (0...199).lazy.map(fibonacci)
+print(fibonacciSequence[19])
+print(fibonacciSequence[19])
+print(fibonacciSequence[19])</pre>
+<p>You'll see the code now takes three times as long to run. So, use lazy sequences when necessary, but remember there are situations when they might actually slow you down!</p><h2>Destructuring</h2>
+<p>Destructuring (also known as decomposition) is a smart way to transfer data into and out from tuples, and when you start to understanding it you'll realize how destructuring and pattern matching are closely linked. Destructuring has three uses: pulling a tuple apart into multiple values, assigning multiple things simultaneously, and switching values.</p>
+<p>Consider this tuple:</p>
+<pre>let data = ("one", "two", "three")</pre>
+<p>If you want to create three different constants out of those three values, without destructuring you'd need to write this:</p>
+<pre>let one = data.0
+let two = data.1
+let three = data.2</pre>
+<p>With destructuring you can write this:</p>
+<pre>let (one, two, three) = data</pre>
+<p>Swift pulls the <code>data</code> tuple apart into those three individual constants, all in a single line of code.</p>
+<p>This technique is particularly helpful when you're working with functions that return tuples, which is commonly used when you want to return multiple values. It's common to want to split up those return values so you can refer to them on your terms, particularly if they have no names in the tuple. For example:</p>
+<pre>func getPerson() -&gt; (String, Int) {
+    return ("Taylor Swift", 26)
+}
+
+let (name, age) = getPerson()
+print("\(name) is \(age) years old")</pre>
+<p>If you want to ignore values during destructuring, use <code>_</code>, like this:</p>
+<pre>let (_, age) = getPerson()
+print("That person is \(age) years old")</pre>
+<p>You can use this same technique to assign multiple things simultaneously, either using fixed values or using function calls. For example:</p>
+<pre>let (captain, chef) = ("Janeway", "Neelix")
+let (engineer, pilot) = (getEngineer(), getPilot())</pre>
+<p>This is particularly useful when you're working with values that are closely related, such as coordinates for a rectangle, and can help improve readability.</p>
+<p>Finally, tuple destructuring is good for swapping values. Now, I'll be honest: this technique is rarely useful outside of interviews, and even then it's a pretty poor choice for an interview question. However, I want to show it to you because I think it demonstrates just how graceful Swift can be so.</p>
+<p>So, here goes: given two integers, A and B, how do you swap them without using a third variable?</p>
+<p>Have a think for a moment, and perhaps even try some code in a playground.</p>
+<p>Here's how you would solve this in most languages:</p>
+<pre>var a = 10
+var b = 20
+
+a = a + b
+b = a - b
+a = a - b
+
+print(a)
+print(b)</pre>
+<p>In Swift, thanks to destructuring, you can write it in a single line:</p>
+<pre>(b, a) = (a, b)</pre>
+<p>Graceful, efficient, and quite beautiful I think. If you're ever asked this question in an interview, you should be able to ace it!</p><h2>Labeled statements</h2>
+<p>Labels have been in use for a long time, but they largely fell out of favor when developers starting to frown on <code>goto</code>. Swift brings them back, but without <code>goto</code>: instead they are used with loops to let you exit them more easily.</p>
+<p>Here's some code that creates a 10x10 grid of strings, and marks one of those squares with an &quot;x&quot; for where some treasure is – it's a hard-coded position here, but in a real game you'd obviously randomize it. The code then has two loops to try to find the treasure, with one loop nested inside the other: loop through all the rows in the board, then loop through each column in each row.</p>
+<p>Here's the code:</p>
+<pre>var board = [[String]](count: 10, repeatedValue: [String](count: 10, repeatedValue: ""))
+
+board[3][5] = "x"
+
+for (rowIndex, cols) in board.enumerate() {
+    for (colIndex, col) in cols.enumerate() {
+        if col == "x" {
+            print("Found the treasure at row \(rowIndex) col \(colIndex)!")
+        }
+    }
+}</pre>
+<p>Given that the treasure can appear once on the board, this code is quite wasteful: even though the treasure is found early on in the search, it carries on looking. If you're thinking it's time to deploy <code>break</code> you'd be right, at least partially. Here's how it might look:</p>
+<pre>for (rowIndex, cols) in board.enumerate() {
+    for (colIndex, col) in cols.enumerate() {
+        if col == "x" {
+            print("Found the treasure at row \(rowIndex) col \(colIndex)!")
+            break
+        }
+    }
+}</pre>
+<p>However, <code>break</code> only exits one level of loop, so it would exit the <code>for (colIndex, col)</code> loop then continue running the <code>for (rowIndex, cols)</code> loop. Yes, it wastes <em>less</em> time, but it's still wasting <em>some</em>. You could add a boolean variable that gets set to true when treasure is found, which you then use to break the outer loop, but Swift has a better solution: labeled statements.</p>
+<p>Labeled statements let you give any loop a name, which allows you to refer to a specific loop when using <code>break</code> or <code>continue</code>. To create a label, just write a name then a colon before any loop. You can then use <code>break yourLabelName</code> or <code>continue yourLabelName</code> to refer directly to it.</p>
+<p>So, the least wasteful way to write that code is like so:</p>
+<pre>var board = [[String]](count: 10, repeatedValue: [String](count: 10, repeatedValue: ""))
+
+board[5][3] = "x"
+
+rowLoop: for (rowIndex, cols) in board.enumerate() {
+    for (colIndex, col) in cols.enumerate() {
+        if col == "x" {
+            print("Found the treasure at row \(rowIndex) col \(colIndex)!")
+            break rowLoop
+        }
+    }
+}</pre>
+<p>That immediately jumps out of both loops, and continues on after the end of the <code>for (rowIndex, cols)</code> loop – perfect.</p>
+<p>Labeling your loops is clever, but Swift takes it a step further: it lets you label <code>if</code> statements then <code>break</code> from them as if they were a loop. This is extraordinarily useful when you find yourself deeply nested inside several conditions and want to bail out immediately, and without it you can end up with a pyramid of increasingly indented conditions.</p>
+<p>Here's a worked example so you can see it in action:</p>
+<pre>if userRequestedPrint() {
+    if documentSaved() {
+        if userAuthenticated() {
+            if connectToNetwork() {
+                if uploadDocument("resignation.doc") {
+                    if printDocument() {
+                        print("Printed successfully!")
+                    }
+                }
+            }
+        }
+    }
+}</pre>
+<p>That code goes through a series of checks to allow a user to print a document: don't try running it, because those functions aren't real!</p>
+<p>If all the conditions evaluate to <code>true</code>, then you'll see &quot;Printed successfully!&quot;.</p>
+<p>What labeled statements let you do is create early returns for your <code>if</code> statements. They run normally, but at any time you feel necessary you can exit any conditional statement. For example, we can rewrite the above pyramid into this:</p>
+<pre>printing: if userRequestedPrint() {
+    if !documentSaved() { break printing }
+    if !userAuthenticated() { break printing }
+    if !connectToNetwork() { break printing }
+    if !uploadDocument("work.doc") { break printing }
+    if !printDocument() { break printing }
+
+    print("Printed successfully!")
+}</pre>
+<p>That takes up fewer lines, forces less indenting on people reading the code, and the happy path is immediately clear.</p>
+<p>If you wanted to, you could even use <code>guard</code> to make your intention even clearer, like this:</p>
+<pre>printing: if userRequestedPrint() {
+    guard documentSaved() else { break printing }
+    guard userAuthenticated() else { break printing }
+    guard connectToNetwork() else { break printing }
+    guard uploadDocument("work.doc") else { break printing }
+    guard printDocument() else { break printing }
+
+    print("Printed successfully!")
+}</pre>
+<p>For the sake of readability, I prefer to test for positive conditions rather than negative. That is, I'd prefer to test for <code>if documentSaved()</code> rather than <code>if !documentSaved()</code> because it's a little easier to understand, and <code>guard</code> does exactly that.</p><h2>Nested functions, classes and structs</h2>
+<p>Swift lets you nest one data type inside another, e.g. a struct within a struct, an enum within a class, or a function within a function. This is most commonly used to help you mentally group things together by logical behavior, but can sometimes have access semantics attached to stop nested data types being used incorrectly.</p>
+<p>Let's deal with the easy situation first: using nested types for logical grouping. Consider the code below, which defines an enum called <code>London</code>:</p>
+<pre>enum London {
+    static let coordinates = (lat: 51.507222, long: -0.1275)
+
+    enum SubwayLines {
+        case Bakerloo, Central, Circle, District, Elizabeth, HammersmithCity, Jubilee, Metropolitan, Northern, Piccadilly, Victoria, WaterlooCity
+    }
+
+    enum Places {
+        case BuckinghamPalace, CityHall, OldBailey, Piccadilly, StPaulsCathedral
+    }
+}</pre>
+<p>That enum has one constant called <code>coordinates</code>, then two nested enums: <code>SubwayLines</code> and <code>Places</code>. But, notably, it has no cases of its own – it's just being used as a wrapper for other data. This has two immediate benefits: first, any IDE with code completion makes it quick and easy to drill down to specific items by listing possible options as you type, for example <code>London.Buildings.CityHall</code>. Second, because you're effectively making namespaced constants, you can use sensible names like &quot;Piccadilly&quot; without worrying whether you mean the subway line or the place, or whether you mean London Piccadilly or Manchester Piccadilly.</p>
+<p>If you extend this technique further, you'll realize you can use it for storyboard IDs, table view cell IDs, image names, and more – effectively doing away with the stringly typed resources that are so prevalent on Apple's platforms. For example:</p>
+<pre>enum R {
+    enum Storyboards: String {
+        case Main, Detail, Upgrade, Share, Help
+    }
+
+    enum Images: String {
+        case Welcome, Home, About, Button
+    }
+}</pre>
+<p>Bonus points if you understand why I used the name <code>R</code> for this. To make the technique work for images, just name your images the same as your enum case, with &quot;.png&quot; on the end, e.g. &quot;About.png&quot;.</p>
+<p>(To put you out of your misery: I used the name R for the resources because this is the exact approach Android uses. If you think Android using it makes R a bad idea, you need to re-evaluate your life choices.)</p>
+<p>Nested types also work with other data types, for example you can have a struct that contains its own enum:</p>
+<pre>struct Cat {
+    enum Breed {
+        case BritishShortHair, Burmese, Persian, Ragdoll, RussianBlue, ScottishFold, Siamese
+    }
+
+    var name: String
+    var breed: Breed
+}</pre>
+<p>You can also place structs within structs when they are used together, for example:</p>
+<pre>struct Deck {
+    struct Card {
+        enum Suit {
+            case Hearts, Diamonds, Clubs, Spades
+        }
+
+        var rank: Int
+        var suit: Suit
+    }
+
+    var cards = [Card]()
+}</pre>
+<p>As you can see in that last example, you can nest as many times as you want to – an enum within a struct within another struct is perfectly legal. </p>
+<h3>Nesting with semantics</h3>
+<p>Nesting for logical grouping doesn't stop you from referring to any of the nested types, although if you nest things too much it gets a bit cumbersome:</p>
+<pre>let home = R.Images.Home
+let burmese = Cat.Breed.Burmese
+let hearts = Deck.Card.Suit.Hearts</pre>
+<p>However, Swift allows you to assign access control modifiers to nested types to control how they can be used. This is useful when a nested type has been designed to work specifically inside its parent: if the <code>Card</code> struct must only be used by the <code>Deck</code> struct, then you need access control.</p>
+<p>Be warned: if a property uses a private type, the property itself must be private. To demonstrate, let's look at the <code>Deck</code> example again:</p>
+<pre>struct Deck {
+    struct Card {
+        enum Suit {
+            case Hearts, Diamonds, Clubs, Spades
+        }
+
+        var rank: Int
+        var suit: Suit
+    }
+
+    var cards = [Card]()
+}</pre>
+<p>If we wanted that <code>Suit</code> enum to be private so that only <code>Card</code> instances can use it, we'd need to use <code>private enum Suit</code>. However, this has the knock-on effect of requiring that the <code>suit</code> property of <code>Card</code> also be private, otherwise it would be accessible in places where the <code>Suit</code> enum was not. So, the updated code is this:</p>
+<pre>struct Deck {
+    struct Card {
+        private enum Suit {
+            case Hearts, Diamonds, Clubs, Spades
+        }
+
+        var rank: Int
+        private var suit: Suit
+    }
+
+    var cards = [Card]()
+}</pre>
+<h3>Nested functions</h3>
+<p>Nested functions are an interesting corner case of access control for nested types, because they are automatically restricted to their enclosing function unless you specify otherwise. Swift implements nested functions as named closures, which means they automatically capture values from their enclosing function.</p>
+<p>To illustrate nested functions, I'm going to create a function that calculates the distance between two points using one of three distance calculation techniques: Euclidean (using Pythagoras's theorem), Euclidean squared (using Pythagoras's theorem, but avoiding the <code>sqrt()</code> call for performance reasons), and Manhattan. If you're not familiar with these terms, &quot;Euclidean distance&quot; is basically drawing a straight line between two points, and &quot;Manhattan distance&quot; uses rectilinear geometry to calculate the absolute difference of two Cartesian coordinates. Try to imagine a taxi cab moving through a city where the blocks are square: you can move two blocks up then two to the right, or two to the right and two up, or one up, one right, one up, one right – the actual distance traveled is the same.</p>
+<p>First, the code for the types we're going to work with:</p>
+<pre>import Foundation
+
+struct Point {
+    let x: Double
+    let y: Double
+}
+
+enum DistanceTechnique {
+    case Euclidean
+    case EuclideanSquared
+    case Manhattan
+}</pre>
+<p>I've created my own <code>Point</code> class to avoid relying on <code>CGPoint</code> and thus Core Graphics. We're going to create three functions, each of which will be nested inside one parent function. The point of this chapter isn't to explain distance calculation, so let's get them out of the way quickly:</p>
+<pre>func calculateEuclideanDistanceSquared(start start: Point, end: Point) -&gt; Double {
+    let deltaX = start.x - end.x
+    let deltaY = start.y - end.y
+
+    return deltaX * deltaX + deltaY * deltaY
+}
+
+func calculateEuclideanDistance(start start: Point, end: Point) -&gt; Double {
+    return sqrt(calculateEuclideanDistanceSquared(start: start, end: end))
+}
+
+func calculateManhattanDistance(start start: Point, end: Point) -&gt; Double {
+    return abs(start.x - end.x) + abs(start.y - end.y)
+}</pre>
+<p>The first function, <code>calculateEuclideanDistanceSquared()</code>, uses Pythagoras's theorem to calculate the straight line distance between two points. If it's been a while since you were at school, this function considers the X and Y delta between two points to be two edges of a triangle, then calculates the hypotenuse of that triangle to be the distance between the two points – A² + B² = C².</p>
+<p>The second function, <code>calculateEuclideanDistance()</code> builds on the <code>calculateEuclideanDistanceSquared()</code> function by calculating the square root of the result to give the true distance. If you need to calculate distances very frequently, e.g. every time the user's finger moves, having this call to <code>sqrt()</code> might become a performance liability, which is why the <code>calculateEuclideanDistanceSquared()</code> function is there.</p>
+<p>Finally, the third function is <code>calculateManhattanDistance()</code>, which calculates the sum of the absolute distances between the two points' X and Y coordinates, as if you were in a taxi cab moving through a city built around square blocks.</p>
+<p>With those three nested functions in place, it's now just a matter of choosing the correct option based on the technique that was requested:</p>
+<pre>switch technique {
+case .Euclidean:
+    return calculateEuclideanDistance(start: start, end: end)
+case .EuclideanSquared:
+    return calculateEuclideanDistanceSquared(start: start, end: end)
+case .Manhattan:
+    return calculateManhattanDistance(start: start, end: end)
+}</pre>
+<p>That's it! Here's the complete code:</p>
+<pre>import Foundation
+
+struct Point {
+    let x: Double
+    let y: Double
+}
+
+enum DistanceTechnique {
+    case Euclidean
+    case EuclideanSquared
+    case Manhattan
+}
+
+func calculateDistance(start start: Point, end: Point, technique: DistanceTechnique) -&gt; Double {
+    func calculateEuclideanDistanceSquared(start start: Point, end: Point) -&gt; Double {
+        let deltaX = start.x - end.x
+        let deltaY = start.y - end.y
+
+        return deltaX * deltaX + deltaY * deltaY
+    }
+
+    func calculateEuclideanDistance(start start: Point, end: Point) -&gt; Double {
+        return sqrt(calculateEuclideanDistanceSquared(start: start, end: end))
+    }
+
+    func calculateManhattanDistance(start start: Point, end: Point) -&gt; Double {
+        return abs(start.x - end.x) + abs(start.y - end.y)
+    }
+
+    switch technique {
+    case .Euclidean:
+        return calculateEuclideanDistance(start: start, end: end)
+    case .EuclideanSquared:
+        return calculateEuclideanDistanceSquared(start: start, end: end)
+    case .Manhattan:
+        return calculateManhattanDistance(start: start, end: end)
+    }
+}
+
+calculateDistance(start: Point(x: 10, y: 10), end: Point(x: 100, y: 100), technique: .Euclidean)</pre>
+<p>Now, all that code is perfectly valid, but it's also more verbose than it needs to be. As a reminder, functions are just named closures and so they capture any values from their enclosing function. In this context, it means we don't need to make the three nested functions accept any parameters, because they are identical to the parameters accepted by the enclosing functions – if we remove them, they'll just be automatically captured. This helps make our intention clearer: these nested functions are just different ways of operating on the same data rather than using specific values.</p>
+<p>Here's the code to rewrite the <code>calculateDistance()</code> function so that it eliminates parameters from its nested functions and relies on capturing instead:</p>
+<pre>func calculateDistance(start start: Point, end: Point, technique: DistanceTechnique) -&gt; Double {
+    func calculateEuclideanDistanceSquared() -&gt; Double {
+        let deltaX = start.x - end.x
+        let deltaY = start.y - end.y
+
+        return deltaX * deltaX + deltaY * deltaY
+    }
+
+    func calculateEuclideanDistance() -&gt; Double {
+        return sqrt(calculateEuclideanDistanceSquared())
+    }
+
+    func calculateManhattanDistance() -&gt; Double {
+        return abs(start.x - end.x) + abs(start.y - end.y)
+    }
+
+    switch technique {
+    case .Euclidean:
+        return calculateEuclideanDistance()
+    case .EuclideanSquared:
+        return calculateEuclideanDistanceSquared()
+    case .Manhattan:
+        return calculateManhattanDistance()
+    }
+}</pre>
+<h3>Returning nested functions</h3>
+<p>Nested functions are automatically restricted to their enclosing function unless you specify otherwise, i.e. if you return them. Remember, functions are first-class data types in Swift, so you can use one function to return another based on specific criteria. In our case, we could make the <code>calculateDistance()</code> function into <code>createDistanceAlgorithm()</code>, which accepts only a technique parameter and returns one of its three nested functions depending on which technique was requested.</p>
+<p>I know it's obvious, but it bears repeating that when you use this approach your nested function stops being private – it gets sent back as a return value for anyone to use.</p>
+<p>Here's how to rewrite <code>calculateDistance()</code> so that it returns one of three functions:</p>
+<pre>func createDistanceAlgorithm(technique technique: DistanceTechnique) -&gt; (start: Point, end: Point) -&gt; Double {
+    func calculateEuclideanDistanceSquared(start start: Point, end: Point) -&gt; Double {
+        let deltaX = start.x - end.x
+        let deltaY = start.y - end.y
+
+        return deltaX * deltaX + deltaY * deltaY
+    }
+
+    func calculateEuclideanDistance(start start: Point, end: Point) -&gt; Double {
+        return sqrt(calculateEuclideanDistanceSquared(start: start, end: end))
+    }
+
+    func calculateManhattanDistance(start start: Point, end: Point) -&gt; Double {
+        return abs(start.x - end.x) + abs(start.y - end.y)
+    }
+
+    switch technique {
+    case .Euclidean:
+        return calculateEuclideanDistance
+    case .EuclideanSquared:
+        return calculateEuclideanDistanceSquared
+    case .Manhattan:
+        return calculateManhattanDistance
+    }
+}</pre>
+<p>Note that each of the three functions needs to accept parameters now, because they will be called later on like this:</p>
+<pre>let distanceAlgorithm = createDistanceAlgorithm(technique: .Euclidean)
+distanceAlgorithm(start: Point(x: 10, y: 10), end: Point(x: 100, y: 100))</pre><h2>Documentation markup</h2>
+<p>Swift has special syntax that lets you embed Markdown-formatted text into your source code, which gets parsed by Xcode and displayed in the Quick Help system pane – press Alt+Cmd+2 while coding to bring it up on the right of the Xcode window. Using specially formatted code comments, you can document what parameters should be passed in, what the return value will contain, any errors that can be thrown, and more.</p>
+<p>This documentation is <em>not</em> the same as the regular inline comments you add to particular code. These comments are placed before your functions and classes and are used to show information in the Quick Help pane, as well as in the autocomplete popup, and are formatted so that both humans and Xcode can read them.</p>
+<p>Let's get the easy stuff out of the way: unless you use one of the special keywords covered later, everything you write in a Markdown comment is shown as description text in the Quick Help pane. If you just start typing text, what you write will be used as a brief description in the autocomplete popup. Xcode can usually fit 20-30 words in the autocomplete space, but that's too long for real world use – aim for about 10 words of concise description.</p>
+<p>Markdown comments start with <code>/**</code> and end with <code>*/</code>, like this:</p>
+<pre>/**
+Call this function to grok some globs.
+*/
+func myGreatFunction() {
+    // do stuff
+}</pre>
+<p>In this text you can use a selection of Markdown formatting, as shown below:</p>
+<pre>Place text in `backticks` to mark code
+* You can write bullets by starting with an asterisk
+    * Indent your asterisks to create sublists
+1. You can write numbered listed by starting with 1.
+1. Subsequent items can also be numbered 1. and Xcode will renumber them automatically.
+
+If you want to write a link, [place your text in brackets](and your link in parentheses)
+# Headings start with a # symbol
+## Subheadings start with ##
+### Subheadings start with ### and are the most common heading style you'll come across
+Write a *single asterisk* around words to make them italic
+Write **two asterisks** around words to make them bold</pre>
+<h3>Documentation keywords</h3>
+<p>Beyond using text to describe your functions, Swift lets you add special keywords that get displayed in the Quick Help pane. There are quite a few of these, but most do nothing other than show a title and some text in Quick Help. There are six that I generally recommend as being useful, and you can learn them in a few minutes.</p>
+<p>First: the <code>Returns</code> keyword lets you specify what value the caller can expect back when the function runs successfully. Remember that autocomplete already reports the data type of the return value, so this field is there to describe what the data actually means – we know it's a string, but how will it be formatted?</p>
+<pre>- Returns: A string containing a date formatted as RFC-822</pre>
+<p>Next is the <code>Parameter</code> keyword. This lets you specify the name of a parameter and describe what it contains. Again, autocomplete will say what data type must be used, so this is your chance to provide some detail: &quot;The name of a Taylor Swift album&quot;. You can include as many <code>Parameter</code> lines as you have parameters.</p>
+<pre>- Parameter album: The name of a Taylor Swift album
+- Parameter track: The track number to load</pre>
+<p>Third is the <code>Throws</code> keyword, which lets you specify a comma-separated list of the error types that can be thrown by the function:</p>
+<pre>- Throws: LoadError.NetworkFailed, LoadError.WriteFailed</pre>
+<p>Fourth is <code>Precondition</code>, which should be used to describe the correct state of your program before your function is called. If you're using pure functions, this precondition ought to rely only on the parameters being passed into the function, for example <code>inputArray.count &gt; 0</code>:</p>
+<pre>- Precondition: inputArray.count &gt; 0</pre>
+<p>Fifth is <code>Complexity</code>, which is popular in the Swift standard library. This isn't formatted specially in Quick Help, but it's useful information for others working with your code. This should be written using Big O notation, for example:</p>
+<pre>- Complexity: O(1)</pre>
+<p>Finally there is the <code>Authors</code> keyword, which I'm in two minds about. As you might imagine, this is used to write the name of a function's author into the Quick Help pane, which is helpful when you need to figure out who to complain to and/or praise for their work. But because Xcode places <code>Authors</code> above <code>Returns</code>, <code>Throws</code>, and <code>Parameter</code>, adding a credit just pushes down the actually important fields. Give it a try and see what you think, but remember that documentation is there to be <em>useful</em> first.</p>
+<pre>- Authors: Paul Hudson</pre>
+<p>If you include more freeform text between the documentation keywords, it will just be flowed into the correct position in Quick Help.</p>		</div>
+
+		<p style="text-align: center;">Copyright &copy; 2016 Paul Hudson, <a href="https://www.hackingwithswift.com">hackingwithswift.com</a>.<br /> <a href="http://twitter.com/twostraws">You should follow me on Twitter</a>.</p>
+	</body>
+</html>

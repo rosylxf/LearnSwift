@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Pro Swift</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<link rel="stylesheet" href="book-assets/project.css">
+	</head>
+
+	<body>
+		<p style="text-align: center;"><img id="logo" src="book-assets/logo.png" alt="Pro Swift" width="350" /></p>
+
+		<div id="container">
+<h1>Introduction: About this book</h1><div class="snippet"><p><strong>Andy Matuschak (@andy_matuschak), lead mobile developer at Khan Academy</strong></p>
+<p>If you’re transforming a collection, but you don’t need to access all the elements right away (or at all), you may be able to save cycles and allocations by using the lazy family of collection types:</p>
+<pre>let userCellsData = users.lazy.map { user in
+    UserCellData(username: user.username, bioAttributedString: formatBioString(user.bio))
+}</pre></div><h2>Welcome</h2>
+<p>This is not a book for people who are new to Swift. I realize that's obvious given that the book is called Pro Swift, but I want to make sure we're getting off on the right foot. Instead, this is a book for people who have some real-world knowledge of the language – perhaps you've made some apps yourself, perhaps you've read through Apple's official Swift reference guide, or perhaps you even read my first book, Hacking with Swift.</p>
+<p>It is <em>not</em> required that you have read Hacking with Swift in order to make the most of this book, but I have to admit it certainly helps. At the very least you should have read the introduction chapter, which goes through the basics of Swift in about an hour of coding. If you haven't already read that chapter, I suggest you stop reading, <a href="https://gumroad.com/l/hws-book-pack/proswift-thankyou">go and buy Hacking with Swift</a>, and read it now – that link gives you $5 off as a thank you for buying Pro Swift.</p>
+<p>If you're still here, I'm assuming it means you're ready to learn about what's in this book. Well, I have some good news: I have distilled 50,000 words of knowledge into this little volume, all of which is dedicated to helping you write your best Swift code. I've tried to cover a wide range of topics so that everyone will find something of interest, which means you'll find chapters on closures, chapters on functional programming, chapters on MVC, chapters on operator overloading, and more – it's a real feast for developers who want to see what Swift is truly capable of.</p>
+<p>I have purposefully gone way beyond the original chapter list I originally announced, partly because I enjoy giving people more than they expected, but mostly because working with advanced Swift is so much fun. I have to admit that it's easy to slip into writing &quot;Objective-C in Swift&quot; when you're an experienced Apple developer, at which point the language just seems like a bossy school teacher that enjoys pointing out your mistakes. But once you start writing idiomatic Swift – Swift as it was meant to be written – suddenly you realize you have an elegant, efficient, and expressive language that will help you ship better software.</p>
+<p>There is no right way to read Pro Swift. You can jump in at whatever chapter interests you if that's what works, although I suspect you'll find it easier just to start at the beginning and work your way through. I make no apologies for jumping around so many topics – I've tried to be as precise as possible while still giving you hands on examples you can try as you read. And please do try the examples!</p>
+<p>One more thing: obviously I hope you enjoy all the chapters in the book, but there were a few that I particularly enjoyed writing and I hope you enjoy them as much while reading. They are &quot;Labeled statements&quot;, &quot;Throwing functions as parameters&quot;, &quot;flatMap()&quot;, and &quot;Function composition&quot; – have fun!</p>
+<h3>Dedication</h3>
+<p>This book is dedicated to my nephew John, who is right now taking his first steps in programming. He's a smart kid with a lot of ideas, but most importantly he's massively curious about the world around him. I hope one day not too far in the future this book will be useful to him too.</p>
+<h3>Acknowledgements</h3>
+<p>A number of people were kind enough to contribute to the creation of this book, and I'm most grateful. In particular, some really great developers took the time to write a short snippet to open each chapter of the book, giving you some fresh, practical insights from Swift developers I respect deeply. In alphabetical order they are Wayne Bishop, Chris Eidhof, Matt Gallagher, Simon Gladman, Wendy Lu, Andy Matushak, Natasha Murashev, and Veronica Ray – thank you all!</p>
+<p>I'm also grateful to Michael Mayer, who helps run the Philly CocoaHeads book club, for providing a second opinion on a chapter I was doubtful about. I ended up removing it from the book – as much as I hate deleting work I've written, I would hate it even more if I was giving you something I thought wasn't up to scratch.</p>
+<p>In places I have used small amounts of source code from the official Swift open source project, mostly to illustrate specific techniques. This code is released under the Apache License v2.0 with the following header:</p>
+<pre>Copyright (c) 2014 - 2016 Apple Inc. and the Swift project authors
+Licensed under Apache License v2.0 with Runtime Library Exception
+See http://swift.org/LICENSE.txt for license information
+See http://swift.org/CONTRIBUTORS.txt for the list of Swift project authors</pre>
+<p>The Swift development team continue to do incredible work. My job – and yours! – would be very different without them, and it's important we thank them for their continuing efforts. In particular, Joe Groff (<a href="https://twitter.com/jckarter">@jckarter</a>) seems to have more hours in the day than anyone else, and I'm grateful for all the times he's answered my questions.</p>
+<h3>Get in touch</h3>
+<p>As this is an early release of a new book, I would love to hear your feedback. If you spot any typos or other mistakes, please email me at <a href="mailto:paul@hackingwithswift.com">paul@hackingwithswift.com</a> or tweet me <a href="https://www.twitter.com/twostraws">@twostraws</a> and I'll do my best to correct quickly. I also intend to write new chapters in the coming weeks, so please don't hesitate to get in touch with special requests.</p>
+<p>Thank you for your support – I love programming in Swift, writing about Swift, and teaching others about Swift. Your support is what makes that possible, and it means a lot to me.</p>
+<h3>Copyright</h3>
+<p>Swift, the Swift logo, Xcode, Instruments, Cocoa Touch, Touch ID, AirDrop, iBeacon, iPhone, iPad, Safari, App Store, Mac and OS X are trademarks of Apple Inc., registered in the U.S. and other countries.</p>
+<p>Pro Swift and Hacking with Swift are copyright Paul Hudson. All rights reserved. No part of this book or corresponding materials (such as text, images, or source code) may be reproduced or distributed by any means without prior written permission of the copyright owner.</p>		</div>
+
+		<p style="text-align: center;">Copyright &copy; 2016 Paul Hudson, <a href="https://www.hackingwithswift.com">hackingwithswift.com</a>.<br /> <a href="http://twitter.com/twostraws">You should follow me on Twitter</a>.</p>
+	</body>
+</html>

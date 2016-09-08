@@ -1,0 +1,624 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Pro Swift</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<link rel="stylesheet" href="book-assets/project.css">
+	</head>
+
+	<body>
+		<p style="text-align: center;"><img id="logo" src="book-assets/logo.png" alt="Pro Swift" width="350" /></p>
+
+		<div id="container">
+<h1>Chapter 2: Types</h1><div class="snippet"><p><strong>Matt Gallagher, author of CocoaWithLove.com</strong></p>
+<p>My favorite Swift one-liner is downcasting and filtering an array using <code>flatMap()</code>:</p>
+<pre>let myCustomViews = allViews.flatMap { $0 as? MyCustomView }</pre>
+<p>The line looks simple but it is packed with great Swift features that are most apparent if you compare with the closest out-of-the-box equivalent in Objective-C:</p>
+<pre>NSArray&lt;MyCustomView *&gt; *myCustomViews = (NSArray&lt;MyCustomView *&gt; *)[allViews filteredArrayUsingPredicate:
+    [NSPredicate predicateWithBlock:^BOOL(id _Nonnull evaluatedObject, NSDictionary&lt;NSString *,id&gt; * _Nullable bindings) {
+        return [evaluatedObject isKindOfClass:[MyCustomView class]];
+    }]
+];</pre></div><h2>Useful initializers</h2>
+<p>Understanding how initializers work isn't easy in Swift, but it's also something you probably learned quite a while ago so I'm not going to go over it again here. Instead, I want to focus on some interesting initializers that might help you use common Swift types more efficiently.</p>
+<h3>Repeating values</h3>
+<p>Easily my favorite initializer for strings and array is <code>count:repeatedValue:</code>, which lets you create large values quickly. For example, you can create headings in the Markdown text format by writing equals signs underneath some text, like this:</p>
+<pre>This is a heading
+=================</pre>
+<p>Markdown is a useful format because it can be parsed by computers while also being visually attractive to humans, and that underlining gives us a great example for <code>count:repeatedValue:</code>. To use this initalizer, give it a <code>Character</code> for its second parameter and the number of times to repeat for its first parameter, like this:</p>
+<pre>let heading = "This is a heading"
+let underline = String(count: heading.characters.count, repeatedValue: Character("="))</pre>
+<p>Note: because Swift's <code>String</code> has two forms of this initializer, you need to make the &quot;=&quot; a <code>Character</code>. This problem doesn't exist in arrays, because they'll repeat whatever you want:</p>
+<pre>let equalsArray = [String](count: heading.characters.count, repeatedValue: "=")</pre>
+<p>And when I say &quot;whatever you want&quot; I mean it: this initializer is flexible enough that you can use it to create multi-dimensional arrays very easily. For example, this creates a 10x10 array ready to be filled:</p>
+<pre>var board = [[String]](count: 10, repeatedValue: [String](count: 10, repeatedValue: ""))</pre>
+<h3>Converting to and from numbers</h3>
+<p>It hurts my brain when I see code like this:</p>
+<pre>let str = "\(someInteger)"</pre>
+<p>It's wasteful and unnecessary, and yet string interpolation is such a neat feature that you'd be forgiven for using it – and in fact I'm pretty sure I've used it a few times without thinking!</p>
+<p>But Swift has a simple, better way to create a string from an integer using an initializer:</p>
+<pre>let str = String(someInteger)</pre>
+<p>Things are slightly harder when converting the other way, because you might try to pass in an invalid number, like this:</p>
+<pre>let int = Int("elephant")</pre>
+<p>So, this initializer returns <code>Int?</code>: if you gave it a valid number you'll get back an <code>Int</code>, otherwise you'll get back nil.</p>
+<p>If you don't want an optional, you should unwrap the result:</p>
+<pre>if let int = Int("1989") {
+    print(int)
+}</pre>
+<p>Alternatively, use the nil coalescing operator (<code>??</code>) to provide a sensible default, like this:</p>
+<pre>let int = Int("1989") ?? 0
+print(int)</pre>
+<p>Swift has variations on these two initializers that deal with variable radices. For example, if you want to work with hexadecimal (base 16), you can ask Swift to give you the string representation of a number in hex like this:</p>
+<pre>let str = String(28, radix: 16)</pre>
+<p>That will set <code>str</code> to &quot;1c&quot;. If you preferred &quot;1C&quot; – i.e., uppercase – try this instead:</p>
+<pre>let str = String(28, radix: 16, uppercase: true)</pre>
+<p>To convert that back into an integer - remembering that it's optional! – use this:</p>
+<pre>let int = Int("1C", radix: 16)</pre>
+<h3>Unique arrays</h3>
+<p>If you have an array with repeated values and you want to find a fast way to remove duplicates, you're looking for <code>Set</code>. This is a built-in data type that has initializers to and from generic arrays, which means you can de-dupe an array quickly and efficiently just using initializers:</p>
+<pre>let scores = [5, 3, 6, 1, 3, 5, 3, 9]
+let scoresSet = Set(scores)
+let uniqueScores = Array(scoresSet)</pre>
+<p>That's all it takes – it's no wonder I'm such a big fan of sets!</p>
+<h3>Dictionary capacities</h3>
+<p>One simple initializer to end on: if you're adding items individually to a dictionary but know how many items you intend to add overall, create your dictionary using the <code>minimumCapacity:</code> initializer like this:</p>
+<pre>var dictionary = Dictionary&lt;String, String&gt;(minimumCapacity: 100)</pre>
+<p>This helps Swift optimize execution by allocating enough space up front. Note: behind the scenes, Swift's dictionaries increase their capacity in powers of 2, so when you request a non-power-of-2 number like 100 you will actually get back a dictionary with a minimum capacity of 128. Remember, this is a <em>minimum</em> capacity – if you add more objects, it's not a problem.</p><h2>Enums</h2>
+<p>I already talked about enum associated values in the pattern matching chapter, but here I want to focus on enums themselves because they are deceptively powerful.</p>
+<p>Let's start with a very simple enum to track some basic colors:</p>
+<pre>enum Color {
+    case Unknown
+    case Blue
+    case Green
+    case Pink
+    case Purple
+    case Red
+}</pre>
+<p>If you prefer, you can write all the cases on one line, like this:</p>
+<pre>enum Color {
+    case Unknown, Blue, Green, Pink, Purple, Red
+}</pre>
+<p>For testing purposes, let's wrap that in a simple struct that represents toys:</p>
+<pre>struct Toy {
+    let name: String
+    let color: Color
+}</pre>
+<p>Swift's type inference can see that the <code>color</code> property of a <code>Toy</code> is a <code>Color</code> enum, which means you don't need to write <code>Color.Blue</code> when creating a toy. For example, we can create two toys like this:</p>
+<pre>let barbie = Toy(name: "Barbie", color: .Pink)
+let raceCar = Toy(name: "Lightning McQueen", color: .Red)</pre>
+<h3>Raw values</h3>
+<p>Let's start off with raw values: a data type that underlies each enum case. Enums don't have a raw value by default, so if you want one you need to declare it. For example, we could give our colors an integer raw value like this:</p>
+<pre>enum Color: Int {
+    case Unknown, Blue, Green, Pink, Purple, Red
+}</pre>
+<p>Just by adding <code>:Int</code> Swift has given each color a matching integer, starting from 0 and counting upwards. That is, Unknown is equal to 0, Blue is equal to 1, and so on. Sometimes the default values aren't useful to you, so you can specify individual integer for every raw value if you want. Alternatively, you can specify a different starting point to have Xcode count upwards from there.</p>
+<p>For example, we could create an enum for the four inner planets of our solar system like this:</p>
+<pre>enum Planet: Int {
+    case Mercury = 1
+    case Venus
+    case Earth
+    case Mars
+    case Unknown
+}</pre>
+<p>By specifically giving Mercury the value of 1, Xcode will count upwards from there: Venus is 2, Earth is 3, and Mars is 4.</p>
+<p>Now that the planets are numbered sensibly, we can find the raw value of any planet like this:</p>
+<pre>let marsNumber = Planet.Mars.rawValue</pre>
+<p>Going the other way isn't quite so easy: yes, you can create a <code>Planet</code> enum from a number now that we have raw values, but doing so creates an <em>optional</em> enum. This is because you could try to create a planet with the raw value 99, which doesn't exist – at least not <em>yet</em>.</p>
+<p>Fortunately, I added an Unknown case to the planets for times when an invalid planet number has been requested, so we can use nil coalescing to create a <code>Planet</code> enum from its raw value with a sensible default:</p>
+<pre>let mars = Planet(rawValue: 4) ?? Planet.Unknown</pre>
+<p>Having numbers is fine for planets, but when it come to colors you might find it easier to use strings instead. Unless you have very specific needs, just specifying <code>String</code> as the raw data type for your enum is enough to give them meaningful names – Swift automatically maps your enum name to a string. For example, this will print &quot;Pink&quot;:</p>
+<pre>enum Color: String {
+    case Unknown, Blue, Green, Pink, Purple, Red
+}
+
+let pink = Color.Pink.rawValue
+print(pink)</pre>
+<p>Regardless of the data type of your raw values, or even if you have one or not, Swift will automatically stringify your enums when they are used as part of string interpolation. Used in this way doesn't make them a string, though, so if you want to call any string methods you need to create a string from them. For example:</p>
+<pre>let barbie = Toy(name: "Barbie", color: .Pink)
+let raceCar = Toy(name: "Lightning McQueen", color: .Red)
+
+// regular string interpolation
+print("The \(barbie.name) toy is \(barbie.color)")
+
+// create a String from the Color then call a method on it
+print("The \(barbie.name) toy is \(String(barbie.color).lowercaseString)")</pre>
+<h2>Computed properties and methods</h2>
+<p>Enums aren't quite as powerful as structs and classes, but they do let you encapsulate some useful functionality inside them. For example, you can't give enums stored properties unless they are static because doing so wouldn't make sense, but you can add <em>computed</em> properties that return a value after running some code.</p>
+<p>To put this in some useful context for you, let's add a computed property to the <code>Color</code> enum that prints a brief description of the color. Apologies ahead of time for mixing Terry Pratchett, Prince and Les Misérables references in one piece of code:</p>
+<pre>enum Color {
+    case Unknown, Blue, Green, Pink, Purple, Red
+
+    var description: String {
+        switch self {
+        case .Unknown:
+            return "the color of magic"
+        case .Blue:
+            return "the color of the sky"
+        case .Green:
+            return "the color of grass"
+        case .Pink:
+            return "the color of carnations"
+        case .Purple:
+            return "the color of rain"
+        case .Red:
+            return "the color of desire"
+        }
+    }
+}
+
+let barbie = Toy(name: "Barbie", color: .Pink)
+print("This \(barbie.name) toy is \(barbie.color.description)")</pre>
+<p>Of course, computed properties are just syntactic sugar around good old methods, so it should come as no surprise that you can add methods directly to enums too. Let's do that now by adding two new methods to the <code>Color</code> enum, <code>forBoys()</code> and <code>forGirls()</code>, to determine whether a toy is for girls or boys based on its color – just add this below the <code>description</code> computed property we just added:</p>
+<pre>func forBoys() -&gt; Bool {
+    return true
+}
+
+func forGirls() -&gt; Bool {
+    return true
+}</pre>
+<p>In case you were wondering, deciding which toys are for boys or girls based on their color is a bit 1970s: those functions both return true for a reason!</p>
+<p>So: our enum now has a raw value, a computed property and some methods. I hope you can see why I described enums as &quot;deceptively powerful&quot; – they can do a lot!</p><h2>Arrays</h2>
+<p>Arrays are one of the true workhorses of Swift. Sure, they are important in most apps, but their use of generics makes them type-safe while adding some useful features. I'm not going to go over their basic usage; instead, I want to walk you through some useful methods you might not know.</p>
+<p>First: sorting. As long as the element type your array stores adopts the <code>Comparable</code> protocol, you get the methods <code>sort()</code> and <code>sortInPlace()</code> – the former returns a sorted array, whereas the latter modifies the array you call it on. If you don't adopt the <code>Comparable</code> protocol, you can use alternate versions of <code>sort()</code> and <code>sortInPlace()</code> that let you specify how items should be sorted.</p>
+<p>To demonstrate the examples below we'll be using these two arrays:</p>
+<pre>let names = ["Taylor", "Timothy", "Tyler", "Thomas", "Tobias", "Tabitha"]
+let numbers = [5, 3, 1, 9, 5, 2, 7, 8]</pre>
+<p>To sort the <code>names</code> array alphabetically, use either <code>sort()</code> or <code>sortInPlace()</code> depending on your needs:</p>
+<pre>let sorted = names.sort()</pre>
+<p>Once that code runs, <code>sorted</code> will contain <code>["Tabitha", "Taylor", "Thomas", "Timothy", "Tobias", "Tyler"]</code>.</p>
+<p>If you want to write your own sorting function – which is required if you don't adopt <code>Comparable</code> but optional otherwise – write a closure that accepts two strings and returns true if the first string should be ordered before the second.</p>
+<p>For example, we could write a string sorting algorithm that behaves identically to a regular alphabetical sort, with the exception that it always places the name &quot;Taylor&quot; at the front. It's what Ms Swift would want, I'm sure:</p>
+<pre>names.sort {
+    print("Comparing \($0) and \($1)")
+    if ($0 == "Taylor") {
+        return true
+    } else if $1 == "Taylor" {
+        return false
+    } else {
+        return $0 &lt; $1
+    }
+}</pre>
+<p>I added a <code>print()</code> call in there so you can see exactly how <code>sort()</code> works. Here's the output:</p>
+<pre>Comparing Timothy and Taylor
+Comparing Tyler and Timothy
+Comparing Thomas and Tyler
+Comparing Thomas and Timothy
+Comparing Thomas and Taylor
+Comparing Tobias and Tyler
+Comparing Tobias and Timothy
+Comparing Tabitha and Tyler
+Comparing Tabitha and Tobias
+Comparing Tabitha and Timothy
+Comparing Tabitha and Thomas
+Comparing Tabitha and Taylor</pre>
+<p>As you can see, names can appear as <code>$0</code> or <code>$1</code> as the algorithm progresses, which is why I compare against both possibilities in the custom sort function.</p>
+<p>Sorting is easy enough, but adopting <code>Comparable</code> also enables two more useful methods: <code>minElement()</code> and <code>maxElement()</code>. Just like <code>sort()</code> these have alternatives that accept a closure if you don't adopt <code>Comparable</code>, but the code is identical because the operation is identical: should item A appear before item B?</p>
+<p>Using the <code>numbers</code> array from earlier, we can find the highest and lowest number in the array in two lines of code:</p>
+<pre>let lowest = numbers.minElement()
+let highest = numbers.maxElement()</pre>
+<p>For strings, <code>minElement()</code> returns whichever string comes first after sorting, and <code>maxElement()</code> returns whichever string comes last. If you try re-using the same closure I gave for custom sorting, including the <code>print()</code> statement, you'll see that <code>minElement()</code> and <code>maxElement()</code> are actually more efficient than using <code>sort()</code> because they don't need to move every item.</p>
+<h3>Conforming to Comparable</h3>
+<p>Working with <code>sort()</code>, <code>minElement()</code>, and <code>maxElement()</code> is easy enough for basic data types like strings and integers. But how do you sort something else entirely, like types of cheese or breeds of dog? I've already shown you how to write custom closures, but that approach becomes cumbersome if you have to sort more than once – you end up duplicating code, which creates a maintenance nightmare.</p>
+<p>The smarter solution is to implement the <code>Comparable</code> protocol, which in turn requires you to use operator overloading. We'll get into more detail on that later, but for now I want to show you just enough to get <code>Comparable</code> working. First, here's a basic <code>Dog</code> struct that holds a couple of pieces of information:</p>
+<pre>struct Dog {
+    var breed: String
+    var age: Int
+}</pre>
+<p>For the purposes of testing, we'll create three dogs and group them in an array:</p>
+<pre>let poppy = Dog(breed: "Poodle", age: 5)
+let rusty = Dog(breed: "Labrador", age: 2)
+let rover = Dog(breed: "Corgi", age: 11)
+let dogs = [poppy, rusty, rover]</pre>
+<p>To begin the process of making <code>Dog</code> adopt <code>Comparable</code> we need to declare it as conforming, like this:</p>
+<pre>struct Dog: Comparable {
+    var breed: String
+    var age: Int
+}</pre>
+<p>You'll get errors now, and that's OK.</p>
+<p>The next step is what confuses people when they try it for the first time: you need to implement two new functions, but they have unusual names and must be put into an unusual place. Both of these are things you just need to get used to when working with operator overloading, which is what we need to do.</p>
+<p>Add these two functions <strong>below</strong> the <code>Dog</code> struct, and <strong>not</strong> inside:</p>
+<pre>func &lt;(lhs: Dog, rhs: Dog) -&gt; Bool {
+    return lhs.breed &lt; rhs.breed
+}
+
+func ==(lhs: Dog, rhs: Dog) -&gt; Bool {
+    return lhs.age == rhs.age
+}</pre>
+<p>To be clear, your code should look like this:</p>
+<pre>struct Dog: Comparable {
+    var breed: String
+    var age: Int
+}
+
+func &lt;(lhs: Dog, rhs: Dog) -&gt; Bool {
+    return lhs.age &lt; rhs.age
+}
+
+func ==(lhs: Dog, rhs: Dog) -&gt; Bool {
+    return lhs.age == rhs.age
+}</pre>
+<p>The function names are unusual if you haven't worked with operator overloading before, but I hope you can see exactly what they do: the <code>&lt;</code> function is used when you write <code>dog1 &lt; dog2</code> and the <code>==</code> function is used when you write <code>dog1 == dog2</code>. Their position is equally important: they don't go inside the <code>Dog</code> struct because they aren't functions of the dog. Instead, you're adding to the global <code>&lt;</code> and <code>==</code> operators.</p>
+<p>Those two steps are enough to implement <code>Comparable</code> fully, so you can now sort the <code>dogs</code> array easily:</p>
+<pre>dogs.sort()</pre>
+<h3>Adding and removing items</h3>
+<p>You're almost certainly already using the <code>append()</code>, <code>insert()</code> and <code>removeAtIndex()</code> methods of arrays, but I want to make sure you're aware of other ways to add and remove items.</p>
+<p>If you want to add two arrays together, you can use <code>+</code>, or <code>+=</code> to add in place. For example:</p>
+<pre>let poppy = Dog(breed: "Poodle", age: 5)
+let rusty = Dog(breed: "Labrador", age: 2)
+let rover = Dog(breed: "Corgi", age: 11)
+var dogs = [poppy, rusty, rover]
+
+let beethoven = Dog(breed: "St Bernard", age: 8)
+dogs += [beethoven]</pre>
+<p>When it comes to removing items, there are two interesting ways of removing the last item: <code>removeLast()</code> and <code>popLast()</code>. They both remove the final item in an array and return it to you, but <code>popLast()</code> is optional whereas <code>removeLast()</code> is not. Think that through for a moment: <code>dogs.removeLast()</code> must return an instance of the <code>Dog</code> struct. What happens if the array is empty? Well, the answer is &quot;bad things&quot; – your app will crash.</p>
+<p>If it's even slightly possible your array might be empty when you try to remove an item, use <code>popLast()</code> instead so you can safely check the return value:</p>
+<pre>if let dog = dogs.popLast() {
+    // do stuff with `dog`
+}</pre>
+<p>Note: <code>removeLast()</code> has a counterpart called <code>removeFirst()</code> to remove and return the initial item in an array. Sadly, <code>popLast()</code> has no equivalent.</p>
+<h3>Emptiness and capacity</h3>
+<p>Here are two more small tips I want to demonstrate: <code>isEmpty</code> and <code>reserveCapacity()</code>. The first of these, <code>isEmpty</code>, returns true if the array has no items added to it. This is both shorter and more efficient than using <code>someArray.count == 0</code>, but for some reason gets less use.</p>
+<p>The <code>reserveCapacity()</code> method lets you tell iOS how many items you intend to store in the array. This isn't a hard limit – i.e., if you reserve a capacity of 10 you can go ahead and store 20 if you want – but it does allow iOS to optimize object storage by ensuring you have enough space for your suggested capacity.</p>
+<p><strong>Warning:</strong> using <code>reserveCapacity()</code> is <em>not</em> a free operation. Behind the scenes, Swift will create a new array that contains the same values, with space for the capacity you asked for. It will <em>not</em> just extend the existing array. The reason for this is that the method guarantees the resulting array will have contiguous storage (i.e., that all items are stored next to each other rather than scattered around RAM), so Swift will do a lot of moving around. This applies even if you've already called <code>reserveCapacity()</code> – try putting this code into a playground to see for yourself:</p>
+<pre>import Foundation
+
+let start = CFAbsoluteTimeGetCurrent()
+
+var array = Array(1...1000000)
+array.reserveCapacity(1000000)
+array.reserveCapacity(1000000)
+
+let end = CFAbsoluteTimeGetCurrent() - start
+print("Took \(end) seconds")</pre>
+<p>When that code runs, you'll see a hefty pause both times <code>reserveCapacity()</code> is called. Because <code>reserveCapacity()</code> is an O(n) call (where &quot;n&quot; is the <code>count</code> value of the array), you should call it before adding items to the array.</p>
+<h3>Contiguous arrays</h3>
+<p>Swift offers two main kinds of arrays, but nearly always you find only one is used. First, let's unpick the syntax a little: you should know that these two lines of code are functionally identical:</p>
+<pre>let array1 = [Int]()
+let array2 = Array&lt;Int&gt;()</pre>
+<p>The first line is syntactic sugar for the second. So far, so easy. But I want to introduce you to the importance of the <code>ContiguousArray</code> container, which looks like this:</p>
+<pre>let array3 = ContiguousArray&lt;Int&gt;(1...1000000)</pre>
+<p>That's it. Contiguous arrays have all the properties and methods you're used to – <code>count</code>, <code>sort()</code>, <code>minElement()</code>, <code>map()</code>, and more – but because all items are guaranteed to be stored contiguously (i.e., next to each other) you can get increased performance.</p>
+<p>Apple's official documentation says to use <code>ContiguousArray</code> when &quot;you need C array performance&quot;, whereas you should regular <code>Array</code> when you want something that is &quot;optimized for efficient conversions from Cocoa and back.&quot; The documentation goes on to say that the performance of <code>Array</code> and <code>ContiguousArray</code> is identical when used with non-class types, which means you will definitely get a performance improvement when working with classes.</p>
+<p>The reason for this is quite subtle: Swift arrays can be bridged to <code>NSArray</code>, which was the array type used by Objective-C developers. For historical reasons, <code>NSArray</code> was unable to store value types, such as integers, unless they were wrapped inside an object. So, the Swift compiler can be clever: if you make a regular Swift array containing value types, it knows you can't try to bridge that to an <code>NSArray</code>, so it can perform extra optimizations to increase performance.</p>
+<p>That being said, I've found <code>ContiguousArray</code> to be faster than <code>Array</code> no matter what, even with basic types such as <code>Int</code>. To give you a trivial example, the code below adds up all the numbers from 1 to 1 million:</p>
+<pre>let array2 = Array&lt;Int&gt;(1...1000000)
+let array3 = ContiguousArray&lt;Int&gt;(1...1000000)
+
+var start = CFAbsoluteTimeGetCurrent()
+array2.reduce(0, combine: +)
+var end = CFAbsoluteTimeGetCurrent() - start
+print("Took \(end) seconds")
+
+start = CFAbsoluteTimeGetCurrent()
+array3.reduce(0, combine: +)
+end = CFAbsoluteTimeGetCurrent() - start
+print("Took \(end) seconds")</pre>
+<p>When I ran that code, <code>Array</code> took 0.25 seconds and <code>ContiguousArray</code> took 0.13 seconds. It's not vastly superior given that we just looped over a million elements, but if you want that extra jolt of performance in your app or game you should definitely give <code>ContiguousArray</code> a try.</p><h2>Sets</h2>
+<p>Understanding the difference between sets and arrays – and knowing when each one is the right choice – is an important skill in any Swift developer's toolbox. Sets can be thought of as unordered arrays that cannot contain duplicate elements. If you add the same element more than once, it will appear only once in the set. The combination of lacking duplicates and not tracking order allows sets to be significantly faster than arrays, because items are stored according to a hash rather than an incrementing integer index.</p>
+<p>To put this into context, checking to see whether an array contains an item has the complexity O(n), which means &quot;it depends on how many elements you have in the array.&quot; This is because <code>Array.contains()</code> needs to check every element from 0 upwards, so if you have 50 elements it needs to do 50 checks. Checking whether a <em>set</em> contains an item has the complexity O(1), which means &quot;it will always run at the same speed no matter how many elements you have.&quot; This is because sets work like dictionaries: a key is generated by creating a hash of your object, and that key points directly to where the object is stored.</p>
+<h3>The basics</h3>
+<p>The best way to experiment with sets is using a playground. Try typing this in:</p>
+<pre>var set1 = Set&lt;Int&gt;([1, 2, 3, 4, 5])</pre>
+<p>When that runs, you'll see &quot;{5, 2, 3, 1, 4}&quot; in the output window. Like I said, sets are unordered so you might see something different in your Xcode window.</p>
+<p>That creates a new set from an array, but you can create them from ranges too, just like arrays:</p>
+<pre>var set2 = Set(1...100)</pre>
+<p>You can also add items to them individually, although the method is named <code>insert()</code> rather than <code>append()</code> to reflect its unordered nature:</p>
+<pre>set1.insert(6)
+set1.insert(7)</pre>
+<p>To check whether an item exists in your set, use the lightning fast <code>contains()</code> method:</p>
+<pre>if set1.contains(3) {
+    print("Number 3 is in there!")
+}</pre>
+<p>And use <code>remove()</code> to remove items from the set:</p>
+<pre>set1.remove(3)</pre>
+<h3>Arrays and sets</h3>
+<p>Arrays and sets work well when used together, so it's no surprise they are almost interchangeable. First, both arrays and sets have constructors that take the other type, like this:</p>
+<pre>var set1 = Set&lt;Int&gt;([1, 2, 3, 4, 5])
+var array1 = Array(set1)
+var set2 = Set(array1)</pre>
+<p>In fact, converting an array into a set and back is the fastest way to remove all its duplicates, and it's just two lines of code.</p>
+<p>Second, several methods of sets return arrays rather than sets because doing so is more useful. For example, the <code>sort()</code>, <code>map()</code> and <code>filter()</code> methods on sets return an array.</p>
+<p>So, while you can loop over sets directly like this:</p>
+<pre>for number in set1 {
+    print(number)
+}</pre>
+<p>…you can also sort the set into a sensible order first, like this:</p>
+<pre>for number in set1.sort() {
+    print(number)
+}</pre>
+<p>Sets, like arrays, have the method <code>removeFirst()</code> to remove an item from the front of the set. It's use is different, though: because sets are unordered you really have no idea what that first item is going to be, so <code>removeFirst()</code> effectively means &quot;give me any object so I can process it.&quot; Cunningly, sets have a <code>popFirst()</code> method, which arrays do not – I really wish I knew why!</p>
+<h3>Set operations</h3>
+<p>Sets come with a number of methods that allow you to manipulate them in interesting ways. For example, you can create the union of two sets – i.e. the merger of two sets – like this:</p>
+<pre>let spaceships1 = Set(["Serenity", "Nostromo", "Enterprise"])
+let spaceships2 = Set(["Voyager", "Serenity", "Executor"])
+
+let union = spaceships1.union(spaceships2)</pre>
+<p>When that code runs, <code>union</code> will contain five items because the duplicate &quot;Serenity&quot; will appear only once.</p>
+<p>Two other useful set operations are <code>intersect()</code> and <code>exclusiveOr()</code>. The former returns a new set that contains only elements that exist in both sets, and the latter does the opposite: it returns only elements that do not exist in both. In code it looks like this:</p>
+<pre>let intersection = spaceships1.intersect(spaceships2)
+let difference = spaceships1.exclusiveOr(spaceships2)</pre>
+<p>When that runs, <code>intersection</code> will contains Serenity and <code>difference</code> will contains Nostromo, Enterprise, Voyager and Executor.</p>
+<p>Note: <code>union()</code>, <code>intersect()</code>, and <code>exclusiveOr()</code> all have &quot;InPlace&quot; alternatives that modify the set directly, for example <code>unionInPlace()</code>.</p>
+<p>Sets have several query methods that return true or false depending on what you provide them. These methods are:</p>
+<ul>
+<li><code>A.isSubsetOf(B)</code>: returns true if all of set A's items are also in set B.</li>
+<li><code>A.isSupersetOf(B)</code>: returns true if all of set B's items are also in set A.</li>
+<li><code>A.isDisjointWith(B)</code>: returns true if none of set B's items are also in set A.</li>
+<li><code>A.isStrictSubsetOf(B)</code>: returns true if all of set A's items are also in set B, but A and B are not equal</li>
+<li><code>A.isStrictSupersetOf(B)</code>: returns true if all of set B's items are also in set A, but A and B are not equal</li>
+</ul>
+<p>Sets distinguish between subsets and strict (or &quot;proper&quot;) subsets, with the difference being that the latter necessarily excludes identical sets. That is, Set A is a subset of Set B if every item in Set A is also in Set B. On the other hand, Set A is a strict subset of Set B if every element in Set A is also in Set B, but Set B contains at least one item that is missing from Set A.</p>
+<p>The code below demonstrates them all individually, and I've marked each method's return value in a comment:</p>
+<pre>let spaceships1 = Set(["Serenity", "Nostromo", "Enterprise"])
+let spaceships2 = Set(["Voyager", "Serenity", "Star Destroyer"])
+let spaceships3 = Set(["Galactica", "Sulaco", "Minbari"])
+let spaceships1and2 = spaceships1.union(spaceships2)
+
+spaceships1.isSubsetOf(spaceships1and2) // true
+spaceships1.isSubsetOf(spaceships1) // true
+spaceships1.isSubsetOf(spaceships2) // false
+spaceships1.isStrictSubsetOf(spaceships1and2) // true
+spaceships1.isStrictSubsetOf(spaceships1) // false
+
+spaceships1and2.isSupersetOf(spaceships2) // true
+spaceships1and2.isSupersetOf(spaceships3) // false
+spaceships1and2.isStrictSupersetOf(spaceships1) // true
+
+spaceships1.isDisjointWith(spaceships2) // false</pre>
+<h3>NSCountedSet</h3>
+<p>The Foundation library has a specialized set called <code>NSCountedSet</code>, and it is a set with a twist: items can still appear only once, but if you try to add them more than once it will keep track of the count as if they were actually there. This means you get all the speed of non-duplicated sets, but you also get the ability to count how many times items would appear if duplicates were allowed.</p>
+<p>You can create an <code>NSCountedSet</code> from Swift arrays or sets depending on your need. In the example below I create one large array (with a duplicated item), add it all to the counted set, then print out the counts for two values:</p>
+<pre>import Foundation
+
+var spaceships = ["Serenity", "Nostromo", "Enterprise"]
+spaceships += ["Voyager", "Serenity", "Star Destroyer"]
+spaceships += ["Galactica", "Sulaco", "Minbari"]
+
+let countedSet = NSCountedSet(array: spaceships)
+
+print(countedSet.countForObject("Serenity")) // 2
+print(countedSet.countForObject("Sulaco")) // 1</pre>
+<p>As you can see, you can use <code>countForObject()</code> to retrieve how many times (in theory) an element appears in the counted set. You can pull out an array of all objects using the <code>countedSet.allObjects</code> property, but be warned: <code>NSCountedSet</code> does <em>not</em> support generics, so you'll need to typecast it back to <code>[String]</code>.</p><h2>Tuples</h2>
+<p>Tuples are like simplified, anonymous structs: they are value types that carry distinct fields of information, but they don't need to be formally defined. This lack of formal definition makes them easy to create and throw away, so they are commonly used when you need a function to return multiple values.</p>
+<p>In the chapters on pattern matching and destructuring, I covered how tuples are used in other ways – they really are pervasive little things. How pervasive? Well, consider this code:</p>
+<pre>func doNothing() { }
+let result = doNothing()</pre>
+<p>Consider this: what data type does the <code>result</code> constant have? As you might have guessed given the name of this chapter, it's a tuple: <code>()</code>. Behind the scenes, Swift maps the <code>Void</code> data type (the default for functions with no explicit return type) to an empty tuple.</p>
+<p>Now consider this: every type in Swift – integers, strings, and so on – is effectively a single-element tuple of itself. Take a look at the code below:</p>
+<pre>let int1: (Int) = 1
+let int2: Int = (1)</pre>
+<p>That code is perfectly correct: assigning an integer to a single-element tuple and assigning a single-element tuple to an integer both do exactly the same thing. As the Apple documentation says, &quot;if there is only one element inside the parentheses, the type [of a tuple] is simply the type of that element.&quot; They are literally the same thing, so you can even write this:</p>
+<pre>var singleTuple = (value: 42)
+singleTuple = 69</pre>
+<p>When Swift compiles the first line, it basically ignores the label and makes it a single-element tuple containing an integer – which is in turn identical to an integer. In practice, this means you can't add labels to single-element tuples – if you try to force a data type, you'll get an error:</p>
+<pre>var thisIsAllowed = (value: 42)
+var thisIsNot: (value: Int) = (value: 42)</pre>
+<p>So, if you return nothing from a function you get a tuple, if you return several values from a function you get a tuple, and if you return a single value you effectively also get a tuple. I think it's safe to say you're already a frequent tuple user whether you knew it or not!</p>
+<p>Now, I'm going to cover a few interesting aspects of tuples below, but first you should know there are a couple of downsides to tuples. Specifically, you can't add methods to tuples or make them implement protocols – if this is what you want to do, you're looking for structs instead.</p>
+<h3>Tuples have types</h3>
+<p>It's easy to think of tuples as some sort of open dumping ground for data, but that's not true: they are strongly typed, just like everything else in Swift. This means you can't change the type of a tuple once it's been created – code like this will simply not compile:</p>
+<pre>var singer = ("Taylor", "Swift")
+singer = ("Taylor", "Swift", 26)</pre>
+<p>If you don't name the elements of your tuple, you can access them using numbers counting from 0, like this:</p>
+<pre>var singer = ("Taylor", "Swift")
+print(singer.0)</pre>
+<p>If you have tuples within tuples – which is not uncommon – you need to use <code>0.0</code> and so on, like this:</p>
+<pre>var singer = (first: "Taylor", last: "Swift", address: ("555 Taylor Swift Avenue", "No, this isn't real", "Nashville"))
+print(singer.2.2) // Nashville</pre>
+<p>This is built-in behavior, but that doesn't mean it's recommended. You can – and usually should – name your elements so you can access them more sensibly:</p>
+<pre>var singer = (first: "Taylor", last: "Swift")
+print(singer.last)</pre>
+<p>These names form part of the type, so code like this will not compile:</p>
+<pre>var singer = (first: "Taylor", last: "Swift")
+singer = (first: "Justin", fish: "Trout")</pre>
+<h3>Tuples and closures</h3>
+<p>You can't add methods to tuples, but you can add closures. The distinction is very fine, I agree, but it is important: adding a closure to a tuple is just like adding any other value, you're literally attaching the code as a data type to the closure. Because it's not a method the declaration is a little different, but here's an example to get you started:</p>
+<pre>var singer = (first: "Taylor", last: "Swift", sing: { (lyrics: String) in
+    print("\(lyrics)")
+})
+
+singer.sing("Haters gonna hate")</pre>
+<p>Note: these closures can't access sibling elements, which means code like this won't work:</p>
+<pre>print("My name is \(first): \(lyrics)")</pre>
+<h3>Returning multiple values</h3>
+<p>Tuples are commonly used to return multiple values from a function. In fact, if this was the only thing that tuples gave us, they'd still be a huge feature of Swift compared to other languages – including Objective-C.</p>
+<p>Here's an example of a Swift function returning several values in a single tuple:</p>
+<pre>func fetchWeather() -&gt; (type: String, cloudCover: Int, high: Int, low: Int) {
+    return ("Sunny", 50, 32, 26)
+}
+
+let weather = fetchWeather()
+print(weather.type)</pre>
+<p>You don't have to name the elements, of course, but it is certainly good practice so that other developers know what to expect.</p>
+<p>If you prefer to destructure the results of a tuple-returning function, that's easy to do too:</p>
+<pre>let (type, cloud, high, low) = fetchWeather()</pre>
+<p>In comparison, if Swift <em>didn't</em> have tuples then we'd have to rely on returning an array and typecasting as needed, like this:</p>
+<pre>import Foundation
+
+func fetchWeather() -&gt; [AnyObject] {
+    return ["Sunny", 50, 32, 26]
+}
+
+let weather = fetchWeather()
+let weatherType = weather[0] as! String
+let weatherCloud = weather[1] as! Int
+let weatherHigh = weather[2] as! Int
+let weatherLow = weather[3] as! Int</pre>
+<p>Or – worse – using <code>inout</code> variables, like this:</p>
+<pre>func fetchWeather(inout type: String, inout cloudCover: Int, inout high: Int, inout low: Int) {
+    type = "Sunny"
+    cloudCover = 50
+    high = 32
+    low = 26
+}
+
+var weatherType = ""
+var weatherCloud = 0
+var weatherHigh = 0
+var weatherLow = 0
+
+fetchWeather(&amp;weatherType, cloudCover: &amp;weatherCloud, high: &amp;weatherHigh, low: &amp;weatherLow)</pre>
+<p>Seriously: if <code>inout</code> is the answer, you're probably asking the wrong question.</p>
+<h3>Optional tuples</h3>
+<p>Tuples can contain optional elements, and you can also have optional tuples. That might sound similar, but the difference is huge: optional elements are individual items inside a tuple such as <code>String?</code> and <code>Int?</code>, whereas an optional tuple is where the whole structure may or may not exist.</p>
+<p>A tuple with optional elements must exist, but its optional elements may be nil. An optional tuple must either have all its elements filled, or be nil. An optional tuple with optional elements may or may not exist, and each of its optional elements may or may not exist.</p>
+<p>Swift can't use type interference when you work with optional tuples because each element in a tuple has its own type. So, you need to declare exactly what you want, like this:</p>
+<pre>let optionalElements: (String?, String?) = ("Taylor", nil)
+let optionalTuple: (String, String)? = ("Taylor", "Swift")
+let optionalBoth: (String?, String?)? = (nil, "Swift")</pre>
+<p>Broadly speaking, optional elements are common, optional tuples less so.</p>
+<h3>Comparing tuples</h3>
+<p>Swift lets you compare tuples up to arity six as long they have identical types. That means you can compare tuples that contain up to six items using <code>==</code>, and it will return true if all six items in one tuple match their counterpart in a second tuple.</p>
+<p>For example, the code below will print &quot;No match&quot;:</p>
+<pre>let singer = (first: "Taylor", last: "Swift")
+let person = (first: "Justin", last: "Bieber")
+
+if singer == person {
+    print("Match!")
+} else {
+    print("No match")
+}</pre>
+<p>Be warned, though: tuple comparison ignores element labels and focuses only on types, which can have unexpected results. For example, the code below will print &quot;Match!&quot; even though the tuple labels are different:</p>
+<pre>let singer = (first: "Taylor", last: "Swift")
+let bird = (name: "Taylor", breed: "Swift")
+
+if singer == bird {
+    print("Match!")
+} else {
+    print("No match")
+}</pre>
+<h3>Typealias</h3>
+<p>You've seen how powerful, flexible, and useful tuples can be, but sometimes you will want to formalize things just a bit. To give you a Swift-themed example, consider these two tuples, representing Taylor Swift's parents:</p>
+<pre>let father = (first: "Scott", last: "Swift")
+let mother = (first: "Andrea", last: "Finlay")</pre>
+<p>(No, I don't have a collection of Taylor Swift facts, but I <em>can</em> use Wikipedia!)</p>
+<p>When they married, Andrea Finlay became Andrea Swift, and they became husband and wife. We could write a simple function to represent that event:</p>
+<pre>func marryTaylorsParents(man man: (first: String, last: String), woman: (first: String, last: String)) -&gt; (husband: (first: String, last: String), wife: (first: String, last: String)) {
+    return (man, (woman.first, man.last))
+}</pre>
+<p>Note: I've used &quot;man&quot; and &quot;wife&quot;, and also had the wife take her husband's surname, because that's what happened with Taylor Swift's parents. Clearly this is only one type of marriage, and I hope you can understand that this is a simplified example, not a political statement.</p>
+<p>The <code>father</code> and <code>mother</code> tuples seemed nice enough in isolation, but that <code>marryTaylorsParents()</code> function looks pretty grim. Repeating <code>(first: String, last: String)</code> again and again makes it hard to read and hard to change.</p>
+<p>Swift's solution is simple: the <code>typealias</code> keyword. This is <em>not</em> specific to tuples, but it's certainly most useful here: it lets you attach an alternate name to a type. For example, we could create a <code>typealias</code> like this:</p>
+<pre>typealias Name = (first: String, last: String)</pre>
+<p>Using that, the <code>marryTaylorsParents()</code> function becomes significantly shorter:</p>
+<pre>func marryTaylorsParents(man man: Name, woman: Name) -&gt; (husband: Name, wife: Name) {
+    return (man, (woman.first, man.last))
+}</pre><h2>Generics</h2>
+<p>Even though generics are an advanced topic in Swift, you use them all the time: <code>[String]</code> is an example of you using the <code>Array</code> structure to store strings, which is an example of generics. The truth is that <em>using</em> generics is straightforward, but <em>creating</em> them takes a little getting used to. In this chapter I want to demonstrate how (and why!) to create your own generics, starting with a function, then a struct, and finally wrapping a Foundation type.</p>
+<p>Let's start with a simple problem that demonstrates what generics are and why they are important: we're going to create a very simple generic function.</p>
+<p>Imagine a function that is designed to print out some debug information about a string. It might look like this:</p>
+<pre>func inspectString(value: String) {
+    print("Received String with the value \(value)")
+}
+
+inspectString("Haters gonna hate")</pre>
+<p>Now let's create the same function that prints information about an integer:</p>
+<pre>func inspectInt(value: Int) {
+    print("Received Int with the value \(value)")
+}
+
+inspectInt(42)</pre>
+<p>Now let's create the same function that prints information about a Double. Actually… let's not. This is clearly very boring code, and we'd need to extend it to floats, booleans, arrays, dictionaries and lots more. There's a smarter solution called generic programming, and it allows us to write functions that work with types that get specified later on. Generic code in Swift uses Pulp Fiction brackets, <code>&lt;</code> and <code>&gt;</code>, so it stands out pretty clearly!</p>
+<p>To create a generic form of our <code>inspectString()</code> function, we would write this:</p>
+<pre>func inspect&lt;SomeType&gt;(value: SomeType) {</pre>
+<p>Note the use <code>SomeType</code>: there's one in angle brackets directly after the function name, and one to describe the <code>value</code> parameter. The first one in the angle brackets is the most important, because it defines your placeholder data type: <code>inspect&lt;SomeType&gt;()</code> means &quot;there's a function called <code>inspect()</code> that can be used with any sort of data type, but regardless of what data type is used I want to refer to it as <code>SomeType</code>.&quot; So, the parameter <code>value: SomeType</code> should now make more sense: <code>SomeType</code> will be replaced with whatever data type is used to call the function.</p>
+<p>As you'll see in a few minutes, placeholder data types are also used for return values. But first here's the final version of the <code>inspect()</code> function that prints out correct information no matter what data is thrown at it:</p>
+<pre>func inspect&lt;T&gt;(value: T) {
+    print("Received \(value.dynamicType) with the value \(value)")
+}
+
+inspect("Haters gonna hate")
+inspect(56)</pre>
+<p>I've used the <code>dynamicType</code> expression so that Swift writes 'String', 'Int' and so on correctly. Notice that I've also used <code>T</code> rather than <code>SomeType</code>, which is a common coding convention: your first placeholder data type is named T, your second U, your third V and so on. In practice, I find this convention unhelpful and unclear, so although I'll be using it here it's only because you're going to have to get used to it.</p>
+<h3>Limiting generics</h3>
+<p>You will often want to limit your generics so that they can operate only on similar types of data, and Swift makes this both simple and easy. This next function will square any two integers, regardless of whether they are <code>Int</code>, <code>UInt</code>, <code>Int64</code>, and so on:</p>
+<pre>func squareSomething&lt;T: IntegerType&gt;(value: T) -&gt; T {
+    return value * value
+}</pre>
+<p>Notice that I've added a placeholder data type for the return value. In this instance it means that the function will return a value of the same data type it accepted.</p>
+<p>Extending <code>squareSomething()</code> so that it supports other kinds of numbers – i.e. doubles and floats – is harder, because there is no protocol that covers all the built-in numeric types. So, let's create one:</p>
+<pre>protocol Numeric {
+    func *(lhs: Self, rhs: Self) -&gt; Self
+}</pre>
+<p>That doesn't contain any code, it just defines a protocol called <code>Numeric</code> and states that anything conforming to that protocol must be able to multiply itself. We want to apply that protocol to <code>Float</code>, <code>Double</code>, and <code>Int</code>, so add these three lines just below the protocol:</p>
+<pre>extension Float: Numeric {}
+extension Double: Numeric {}
+extension Int: Numeric {}</pre>
+<p>With that new protocol in place, you can square whatever you want:</p>
+<pre>func squareSomething&lt;T: Numeric&gt;(value: T) -&gt; T {
+    return value * value
+}
+
+squareSomething(42)
+squareSomething(42.556)</pre>
+<h3>Creating a generic data type</h3>
+<p>Now that you've mastered generic functions, let's take it up a notch with a fully generic data type: we're going to create a generic struct. When you're creating a generic data type you need to declare your placeholder data type as part of the struct's name, and that placeholder is then available to use in every property and method as needed.</p>
+<p>The struct we're going to build is called &quot;deque&quot;, which is a common abstract data type that means &quot;double-ended queue.&quot; A regular queue is one where you add things to the end of the queue, and remove them from the front. A <em>deque</em> (pronounced &quot;deck&quot;) is a queue where you can add things to the beginning or the end, and remove things from the beginning or end too. I chose to use a deque here because it's very simple to do by re-using Swift's built-in arrays – the concept is the key here, not the implementation!</p>
+<p>To create a deque struct, we're going to give it a stored array property that will itself be generic, because it needs to hold whatever data type our deque stores. We'll also add four methods: <code>pushBack()</code> and <code>pushFront()</code> will accept a parameter of type <code>T</code> and add it to the right place, and <code>popBack()</code> and <code>popFront()</code> will return a <code>T?</code> (an placeholder optional data type) that will return a value from the back or front if one exists.</p>
+<p>There's only one tiny complexity, which is that arrays don't have a <code>popFirst()</code> method that returns <code>T?</code>, so we need to add some extra code to run when the array is empty. Here's the code:</p>
+<pre>struct deque&lt;T&gt; {
+    var array = [T]()
+
+    mutating func pushBack(obj: T) {
+        array.append(obj)
+    }
+
+    mutating func pushFront(obj: T) {
+        array.insert(obj, atIndex: 0)
+    }
+
+    mutating func popBack() -&gt; T? {
+        return array.popLast()
+    }
+
+    mutating func popFront() -&gt; T? {
+        if array.isEmpty {
+            return nil
+        } else {
+            return array.removeFirst()
+        }
+    }
+}</pre>
+<p>With that struct in place, we can start using it immediately:</p>
+<pre>var testDeque = deque&lt;Int&gt;()
+testDeque.pushBack(5)
+testDeque.pushFront(2)
+testDeque.pushFront(1)
+testDeque.popBack()</pre>
+<h3>Working with Cocoa types</h3>
+<p>Cocoa data types – <code>NSArray</code>, <code>NSDictionary</code>, and so on – have been available to use since the earliest releases of Swift, but they can be difficult to work with because Objective-C is so aggressively object-oriented. Unlike native Swift arrays, you can't store value types in an <code>NSArray</code> because they only work with objects. This is particularly a problem for Swift developers, because so many of our basic components are value types: strings, integers, arrays, and more.</p>
+<p>Internally, Swift can sometimes bridge between Swift value types and their Objective-C reference type equivalents, meaning that <code>String</code> can be mapped to <code>NSString</code>, <code>Array</code> can be mapped to <code>NSArray</code>, and so on. But this conversion isn't perfect, and sometimes you need to give it a helping hand.</p>
+<p>To demonstrate this, we're going to create a generic wrapper around one of my favorite Cocoa data types: <code>NSCountedSet</code>. This is like a regular <code>Set</code> in that each item is only stored once, but has the added benefit that it keeps count of how many times you tried to add or remove objects. This means it can say &quot;you added the number 5 twenty times&quot; even though it's actually only in there once.</p>
+<p>The basic code for this isn't too hard, although you do need to have imported <code>Foundation</code> in order to access <code>NSCountedSet</code>:</p>
+<pre>import Foundation
+
+struct CountedSet&lt;T: AnyObject&gt; {
+    var internalSet = NSCountedSet()
+
+    func addObject(obj: T) {
+        internalSet.addObject(obj)
+    }
+
+    func removeObject(obj: T) {
+        internalSet.removeObject(obj)
+    }
+
+    func countForObject(obj: T) -&gt; Int {
+        return internalSet.countForObject(obj)
+    }
+}</pre>
+<p>Notice that I restricted the <code>CountedSet</code> struct so that it works only with objects. This is required, because <code>NSCountedSet</code> follows other Objective-C containers and can store only objects.</p>
+<p>Now, you might think that this causes a problem: if we can store only objects, then we can't make our <code>CountedSet</code> work with value types like Swift strings and integers. But this is where bridging comes in: yes, we need to make the <code>CountedSet</code> store an object type, but if we then provide a bridged value type Swift will automatically convert it to work.</p>
+<p>So, to store strings we need to make a <code>CountedSet&lt;NSString&gt;</code>, and to store numbers we need to use <code>CountedSet&lt;NSNumber&gt;</code>. Once that's been created, you can go ahead and use normal Swift strings, integers, doubles and so on, and Swift will do the rest of the work for you:</p>
+<pre>var countedSet = CountedSet&lt;NSString&gt;()
+countedSet.addObject("Hello")
+countedSet.addObject("Hello")
+countedSet.countForObject("Hello")
+
+var countedSet2 = CountedSet&lt;NSNumber&gt;()
+countedSet2.addObject(5)
+countedSet2.countForObject(5)</pre>
+<p>It's an inconvenience, but only a small one, and allows you to blend the power of Cocoa types with Swift's generic type safety.</p>		</div>
+
+		<p style="text-align: center;">Copyright &copy; 2016 Paul Hudson, <a href="https://www.hackingwithswift.com">hackingwithswift.com</a>.<br /> <a href="http://twitter.com/twostraws">You should follow me on Twitter</a>.</p>
+	</body>
+</html>

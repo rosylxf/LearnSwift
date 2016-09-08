@@ -1,0 +1,424 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Pro Swift</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<link rel="stylesheet" href="book-assets/project.css">
+	</head>
+
+	<body>
+		<p style="text-align: center;"><img id="logo" src="book-assets/logo.png" alt="Pro Swift" width="350" /></p>
+
+		<div id="container">
+<h1>Chapter 6: Functional programming</h1><div class="snippet"><p><strong>Veronica Ray (@nerdonica), software engineer at LinkedIn</strong></p>
+<p>If you need the index for each element along with its value, you can use the enumerate() method to iterate over the array:</p>
+<pre>for (index, element) in loggerContent.enumerate() {
+    logfiles["logfile\(index).txt"] = element
+}</pre></div><h2>What is functional programming?</h2>
+<p>Depending on where you're coming from, functional programming might be a perfectly normal way of writing code, it might be an academic tool that somehow snuck out of university campuses, or it might something you use to scare kids into staying in bed. The truth is that functional programming usage covers a spectrum, from &quot;I'm basically reading algebra&quot; to &quot;I'm using mostly using object-oriented code, with a few functional techniques where I want them.&quot;</p>
+<p>I've read a lot of tutorials about functional programming that mean well, but probably end up doing more harm than good. You see, functional programming isn't too hard to pick up and use in a practical way, but you can also overwhelm people with talk of monads and functors. I aim to teach you the benefits of functional programming while also cutting out the parts you're less likely to benefit from. I make no apologies: this whole book is about teaching you hands-on techniques to improve your coding immediately, not explaining what referential transparency is.</p>
+<p>I want to teach you some functional programming using what Andy Matuschak describes as &quot;lightweight encounters.&quot; This means we'll focus on finding simple, small benefits that you can understand and use straight away. Andy is an experienced functional developer, but he's also pragmatic about learning approaches – I hope he won't frown too much on me simplifying (and even jettisoning) so much theory!</p>
+<p>Before I jump into functional code, I want to give you a broad idea of why we might want to change the current way of working. Chances are that you have used object orientation extensively in the past: you've created classes, made subclasses from those classes, added methods and properties, and more. If you've already read the chapter on reference and value types, you'll also know that objects are reference types, which means a property could be changed by any of its multiple owners.</p>
+<p>We consider object orientation easy because it's what we know. If I tell you that <code>Poodle</code> inherits from <code>Dog</code>, has a <code>barkVolume</code> property and a <code>biteStrength</code> property, as well as a <code>barkWorseThanBite()</code> method, you immediately understand what all that means. But it's not <em>simple</em>. It's complicated: that one &quot;easy&quot; class blends state, functionality, inheritance, and more, so you need to keep a lot in your head to follow along.</p>
+<p>Functional programming – or at least the slightly simplified definition I'll be working with here – can dramatically simplify your code. At first, this will cause problems because you're effectively fighting object-oriented muscle memory: your instinct to solve every problem by creating a new class needs to be put on hold, at least for the time being.</p>
+<p>Instead, we're going to apply five principles that help deliver the benefits of functional programming without the algebra.</p>
+<p>First, functions are first-class data types. That means they can be created, copied, and passed around like integers and strings. Second, because functions are first-class data types, they can be used as parameters to other functions. Third, in order to allow our functions to be re-used in various ways, they should always return the same output when given specific input, and not cause any side effects. Fourth, because functions always return the same output for some given input, we should prefer to use immutable data types rather than using functions to change mutable variables. Fifth and finally, because our functions don't cause side effects and variables are all immutable, we can reduce how much state we track in our program – and often eliminate it altogether.</p>
+<p>I know that's a lot to take in all at once, so let me try to break down each of those into more detail.</p>
+<p>You should already know that functions are first-class data types in Swift – after all, you can copy closures and pass them around. So, that's one down. Next up, passing functions as parameters to other functions is also something you maybe have done already, such as calling <code>sort()</code> with a closure. You might come across the name &quot;higher-order function&quot;, which is the name given to a function that accepts another function as a parameter.</p>
+<p>Where things get more a bit more complicated – but a lot more interesting – is when we write functions that always produce the same output for a given input. This means if you write a function <code>lengthOfStrings()</code> that accepts an array of strings and returns back an array of integers based on the length of each string, that function will return [6, 4, 5] when given [&quot;Taylor&quot;, &quot;Paul&quot;, &quot;Adele&quot;]. It doesn't matter what else has happened in your program, or how often the function has been called: the same input must return the same output.</p>
+<p>A corollary is that functions ought not to create side effects that might affect other functions. For example, if we had another function <code>fetchSystemTime()</code> that returned the time, it should not be the case that calling <code>fetchSystemTime()</code> could affect the result of <code>lengthOfStrings()</code>. A function that always returns the same result for a given input without causing side effects is often called a <em>pure</em> function. I guess that makes all other functions <em>impure</em>, and you don't want to write dirty, dirty functions, do you?</p>
+<p>One source of confusion about pure functions revolves around the meaning of &quot;side effect.&quot; If a function does something like writing to disk, is that a side effect or in fact just the main point of the function? There's a lot of argument about this, and I'm not going to wade into it. Instead, I'll say that functional programmers should <em>aspire</em> to create pure functions, but when it comes to the crunch favor predictable output for known input over avoiding side effects. That is, if you want to write a function that writes some data to disk (a side effect? the actual effect? call it what you want!) then go for it, but at least make sure it writes exactly the same thing when given the same data.</p>
+<p>I've already covered the important of immutable data types and values rather than references, so I shan't go over them again other than to say that classes are about as welcome in functional code as a hedgehog in a hemophilia convention.</p>
+<p>Finally, the lack of state can be tricky, because it's so deeply baked into object orientation. &quot;State&quot; is a series of values stored by your program, which isn't always a bad thing – it includes caching things to increase performance, and also important things like user settings. The problem comes when this state gets used inside a function, because it means the function is no longer predictable. Using the <code>lengthOfStrings()</code> example from earlier, consider what would happen if we had a boolean setting called <code>returnLengthsAsBinary</code> – the function that would always return [6, 4, 5] when given [&quot;Taylor&quot;, &quot;Paul, &quot;Adele&quot;] could now also return ['110', '10', '101'] depending on the value of something completely external. Being pragmatic, don't avoid state at all costs, but never let it pollute your functional code, and work to minimize its use more generally.</p>
+<p>When all five of these principles combine, you get a number of immediate, valuable benefits. When you write functions that produce predictable output, you can write unit tests for them trivially. When you use immutable value types rather than reference types, you remove unexpected dependencies in your app and make your code easier to reason about. When you build small, composable functions that can be combined with higher-order functions and re-used in any number of ways, you can build hugely powerful apps by putting together many small, simple pieces.</p>
+<p><strong>Note:</strong> I'll be referring to these five principles in subsequent chapters. Rather than repeat myself again and again, I'll just say the Five Functional Principles, and hopefully you'll remember 1) first-class data types, 2) higher-order functions, 3) pure functions, 4) immutability, and 5) reduce state.</p>
+<p>OK, enough theory. I hope I've managed to convince you that functional programming has something to offer everyone, and even if you take only a few concepts from the following chapters that's a big improvement.</p><h2>map()</h2>
+<p>Let's start with the easiest way into functional programming: the <code>map()</code> method. This takes a value out of a container, applies a function to it, then puts the result of that function back into a new container that gets returned to you. Swift's arrays, dictionaries, and sets have <code>map()</code> built in, and it's commonly used to loop through every item in an array while applying a function to each value.</p>
+<p>I already mentioned a <code>lengthOfStrings()</code> function that accepts an array of strings and return an array of integers based on the size of the input strings. You might write it something like this:</p>
+<pre>func lengthOfStrings(strings: [String]) -&gt; [Int] {
+    var result = [Int]()
+
+    for string in strings {
+        result.append(string.characters.count)
+    }
+
+    return result
+}</pre>
+<p>That function takes an array of strings and returns an array of integers based on those strings. This is a perfect use for <code>map()</code>, and in fact we can replace all that code with this:</p>
+<pre>func lengthOfStrings(strings: [String]) -&gt; [Int] {
+    return strings.map { $0.characters.count }
+}</pre>
+<p>It's clear that the functional approach is shorter, but its benefit is not just about writing less code. Instead, the functional version conveys significantly more meaning to the compiler: it's now clear we want to apply some code to every item in an array, and it's down to Swift to make that happen efficiently. For all we know, Swift could parallelize your closure so that it gets applied to four items at a time, or it could run through the items in a more efficient order than beginning to end.</p>
+<p>Using <code>map()</code> also makes clear our intention to other coders: it will go over every item in an array and apply a function to it. With the traditional <code>for</code> loop you might have a <code>break</code> in there half-way through – something that is not possible with <code>map()</code> – and the only way to find that out is to read all the code. If you're following the Five Functional Principles I already laid down (specifically using pure functions and avoiding state), a human reading your code can know immediately that a closure used with <code>map()</code> won't try to store global state along the way.</p>
+<p>This simplification is important, and it's a change of focus. Javier Soto – well-known functional proponent and Swift hacker extraordinaire at Twitter – sums up the usefulness of <code>map()</code> like this: it &quot;allows us to express what we want to achieve, rather than how this is implemented.&quot; That is, we just say &quot;here's what we want to do with the items in this array&quot; is easier to read, write, and maintain than hand-writing loops and creating arrays by hand.</p>
+<p>One other thing: notice how the type signature hasn't changed. That means we write <code>func lengthOfStrings(strings: [String]) -&gt; [Int]</code> whether or not we're using a functional approach internally. This means you can change the internals of your functions to adopt functional approaches without affecting how they interact with the rest of your app – you can upgrade your code bit by bit rather than all at once.</p>
+<h3>Examples</h3>
+<p>To help you get more comfortable using <code>map()</code>, here are some examples.</p>
+<p>This snippet converts strings to uppercase:</p>
+<pre>let fruits = ["Apple", "Cherry", "Orange", "Pineapple"]
+let upperFruits = fruits.map { $0.uppercaseString }</pre>
+<p>This snippet converts an array of integer scores into formatted strings:</p>
+<pre>let scores = [100, 80, 85]
+let formatted = scores.map { "Your score was \($0)" }</pre>
+<p>These two snippets use the ternary operator to create an array of strings, matching each item against specific criteria. The first checks that each score is above 85, and the second checks that each position is within a the range 45 to 55 inclusive:</p>
+<pre>let scores = [100, 80, 85]
+let passOrFail = scores.map { $0 &gt; 85 ? "Pass" : "Fail" }
+
+let position = [50, 60, 40]
+let averageResults = position.map { 45...55 ~= $0  ? "Within average" : "Outside average" }</pre>
+<p>Finally, this example uses the <code>sqrt()</code> function to calculate the square roots of numbers:</p>
+<pre>import Foundation
+let numbers: [Double] = [4, 9, 25, 36, 49]
+let result = numbers.map(sqrt)</pre>
+<p>As you can see, <code>map()</code> has that name because it specifies the mapping from one array to another. That is, if you pass it an array <code>[a, b, c]</code> and function <code>f()</code>, Swift will give you the equivalent of <code>[f(a), f(b), f(c)]</code>.</p>
+<h3>Optional map</h3>
+<p>To repeat what I said earlier, <code>map()</code> &quot;takes a value out of a container, applies a function to it, then puts the result of that function back into a new container that gets returned to you.&quot; We've been using an array so far, but if you think about it a value inside a container is exactly what optionals are. They are defined like this:</p>
+<pre>enum Optional&lt;Wrapped&gt; {
+    case None
+    case Some(Wrapped)
+}</pre>
+<p>Because they are just simple containers for a single value, we can use <code>map()</code> on optionals too. The principle is identical: take value out of container, apply function, then place value back in the container again.</p>
+<p>Let's start with a simple example so you can see how optional map works:</p>
+<pre>let i: Int? = 10
+let j = i.map { $0 * 2 }
+print(j)</pre>
+<p>That will print <code>Optional(20)</code>: the value 10 was taken out of its optional container, multiplied by 2, then placed back into an optional. If <code>i</code> had been nil, <code>map()</code> would just return nil. This behavior makes <code>map()</code> useful when manipulating optional values, particularly when combined with the nil coalescing operator.</p>
+<p>To give you an example, consider the following function:</p>
+<pre>func fetchUsername(id: Int) -&gt; String? {
+    if id == 1989 {
+        return "Taylor Swift"
+    } else{
+        return nil
+    }
+}</pre>
+<p>That returns an optional string, so we'll either get back &quot;Taylor Swift&quot; or nil. If we wanted to print out a welcome message – but only if we got back a username – then optional map is perfect:</p>
+<pre>var username: String? = fetchUsername(1989)
+let formattedUsername = username.map { "Welcome, \($0)!" } ?? "Unknown user"
+print(formattedUsername)</pre>
+<p>To write that in a non-functional approach, the alternative is much longer:</p>
+<pre>let username = fetchUsername(1989)
+let formattedUsername: String
+
+if let username = username {
+    formattedUsername = "Welcome, \(username)!"
+} else {
+    formattedUsername = "Unknown user"
+}
+
+print(formattedUsername)</pre>
+<p>There is a shorter alternative that we could use, but it involves a ternary operator as well as force unwrapping:</p>
+<pre>let username = fetchUsername(1989)
+let formattedUsername = username != nil ? "Welcome, \(username!)!" : "Unknown user"
+print(formattedUsername)</pre>
+<h3>forEach</h3>
+<p><code>map()</code> has a close relation called <code>forEach()</code>, which also loops over an array and executes a function on each item. The difference lies in the return value: <code>map()</code> returns a new array of items, whereas <code>forEach()</code> returns nothing at all – it's just a functional way to loop over each item. This gives more information to the compiler and to readers of your code: by using <code>forEach()</code> you're making it clear you're not manipulating the contents of the array, which allows the Swift optimizer to do a better job.</p>
+<p>Other than the return value, <code>forEach()</code> is used the same as <code>map()</code>:</p>
+<pre>["Taylor", "Paul", "Adele"].forEach { print($0) }</pre><h2>flatMap()</h2>
+<p>I'm not going to lie to you, <code>flatMap()</code> can seem daunting at first. I've put it here, directly following the surprisingly-easy-and-useful-too <code>map()</code> function because the two are closely related, not because I want to shock you with <code>flatMap()</code> so early in your functional career!</p>
+<p>As you saw, <code>map()</code> takes an item out of a container such as an array, applies a function to it, then puts it back in the container. The immediate use case for this is arrays, but optionals work just as well. When an array contains arrays – i.e., an array of arrays – you get access to a new method called <code>flatten()</code>, which converts that array of arrays into a single array, like this:</p>
+<pre>let numbers = [[1, 2], [3, 4], [5, 6]]
+let flattened = Array(numbers.flatten())
+// [1, 2, 3, 4, 5, 6]</pre>
+<p>So, <code>flatten()</code> reduces array complexity by one level: a two-dimensional array becomes a single-dimensional array by concatenating items.</p>
+<p>The <code>flatMap()</code> function is effectively the combination of using <code>map()</code> and <code>flatten()</code> in a single call, in that order. It maps items in array A into array B using a function you provide, then flattens the results using concatenation. This becomes valuable when you remember that arrays and optionals are both containers, so <code>flatMap()</code>'s ability to remove one level of containment is very welcome indeed.</p>
+<p>First, let's look at our friend <code>map()</code>:</p>
+<pre>let albums: [String?] = ["Fearless", nil, "Speak Now", nil, "Red"]
+let result = albums.map { $0 }
+print(result)</pre>
+<p>Mapping using <code>$0</code> just means &quot;return the existing value,&quot; so that code will print the following:</p>
+<pre>[Optional("Fearless"), nil, Optional("Speak Now"), nil, Optional("Red")]</pre>
+<p>That's a lot of optionals, with some <code>nil</code>s scattered through. Switching to <code>flatMap()</code> rather than <code>map()</code> can help:</p>
+<pre>let albums: [String?] = ["Fearless", nil, "Speak Now", nil, "Red"]
+let result = albums.flatMap { $0 }
+print(result)</pre>
+<p>Just changing <code>map { $0 }</code> to <code>flatMap { $0 }</code> changes the result dramatically:</p>
+<pre>["Fearless", "Speak Now", "Red"]</pre>
+<p>The optionals are gone <em>and</em> the nils are removed – perfect!</p>
+<p>The reason for this magic lies in <code>flatMap()</code>'s return value: whereas <code>map()</code> will retain the optionality of the items it processes, <code>flatMap()</code> will strip it out. So, in the code below, <code>mapResult</code> is of type <code>[String?]</code> and <code>flatMapResult</code> is of type <code>[String]</code>:</p>
+<pre>let mapResult = albums.map { $0 }
+let flatMapResult = albums.flatMap { $0 }</pre>
+<h2>Optional flat map</h2>
+<p>If the usefulness of <code>flatMap()</code> isn't quite clear yet, please stick with me! Let's look at this example again:</p>
+<pre>let albums: [String?] = ["Fearless", nil, "Speak Now", nil, "Red"]
+let result = albums.flatMap { $0 }
+print(result)</pre>
+<p>The <code>albums</code> array is of type <code>[String?]</code>, so it holds an array of optional strings. Using <code>flatMap()</code> here strips out the optionality, but really that's just the effect of flattening the optional containers – it doesn't do any sort of mapping transformation.</p>
+<p>Now, here's where <code>flatMap()</code> becomes awesome: because the flattening happens after the mapping, you can effectively say &quot;do something interesting with these items (map), then remove any items that returned nil (flatten).&quot;</p>
+<p>To give you a practical example, imagine a school grade calculator: students are asked to enter their scores from various exams, and it will output their estimated grade. This needs to convert user-entered numbers into integers, which is problematic because they can make mistakes or enter nonsense. As a result, creating an integer from a string returns an optional integer – it's nil if the input was &quot;Fish&quot;, but 100 if the input was &quot;100&quot;.</p>
+<p>This is a perfect problem for <code>flatMap()</code>: we can take an array like <code>["100", "90", "Fish", "85"]</code>, map over each value to convert it to an optional integer, then flatten the resulting array to remove the optionality and any invalid values:</p>
+<pre>let scores = ["100", "90", "Fish", "85"]
+let flatMapScores = scores.flatMap { Int($0) }
+print(flatMapScores)</pre>
+<p>That will output &quot;[100, 90, 85]&quot; – perfect!</p>
+<p>This technique can be used whenever you need to differentiate between success and failure of code by the use of optionality. To put that a bit more simply: if you have an array of input items, and a transformation function that will return either a transformed item or nil if the transformation failed, this technique is ideal.</p>
+<p>If you think this situation crops up rarely, remember that any throwing function can be used with <code>try?</code>, which translates it to a function that returns nil on failure – exactly what this approach needs.</p>
+<p>Obviously I can't predict what's in your code, but here's an example to get you started:</p>
+<pre>let files = (1...10).flatMap { try? String(contentsOfFile: "someFile-\($0).txt") }
+print(files)</pre>
+<p>That will load into an array the contents of someFile-1.txt, someFile-2.txt, and so on. Any file that don't exist will throw an exception, which <code>try?</code> converts into nil, and <code>flatMap()</code> will ignore – all with just one line of code!</p>
+<p>As you can see, <code>flatMap()</code> brings together <code>flatten()</code>, <code>map()</code>, and <code>filter()</code> for nil values all in one, and I hope you can see how it's useful in your own code.</p><h2>filter()</h2>
+<p>The <code>filter()</code> method loops over every item in a collection, and passes it into a function that you write. If your function returns true for that item it will be included in a new array, which is the return value for <code>filter()</code>.</p>
+<p>For example, the code below creates an array of the first 10 numbers in the Fibonacci sequence, then filters that array to include only items that are even:</p>
+<pre>let fibonacciNumbers = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
+let evenFibonacci = fibonacciNumbers.filter { $0 % 2 == 0 }</pre>
+<p>So, the code will run, and pass the number 1 into the closure, making <code>1 % 2 == 0</code>, which is false. As a result, 1 will not be included in the result array. When it reaches true, that will be included because <code>2 % 2 == 0</code> is true.</p>
+<p>As with <code>map()</code>, the order items are filtered is out of our control – Swift is free to apply any optimizations it wants to make filtering go faster.</p>
+<h3>Examples</h3>
+<p>Here are four examples that demonstrate using <code>filter()</code> in different ways, starting with two I've used elsewhere:</p>
+<pre>let names = ["Michael Jackson", "Taylor Swift", "Michael Caine", "Adele Adkins", "Michael Jordan"]
+let result = names.filter { $0.hasPrefix("Michael") }</pre>
+<p>That will create an array of strings using only names that begin with Michael.</p>
+<p>This next example returns a subset of the <code>words</code> array based on which words exist in the string <code>input</code>:</p>
+<pre>import Foundation
+let words = ["1989", "Fearless", "Red"]
+let input = "My favorite album is Fearless"
+let result = words.filter { input.containsString($0) }</pre>
+<p>I've already demonstrated <code>flatMap()</code>'s extraordinary ability to strip nil values from an array, but it also removes optionality from the remaining elements. If you want to strip nil but retain optionality, use <code>filter()</code> like this:</p>
+<pre>let words: [String?] = ["1989", nil, "Fearless", nil, "Red"]
+let result = words.filter { $0 != nil }
+print(result)</pre>
+<p>Finally, <code>filter()</code> behaves curiously when presented with a dictionary: you get back an array of tuples containing the result, rather than another dictionary. So, you should access items using array subscripting to get an item, then <code>.0</code> and <code>.1</code> for the key and value respectively. For example:</p>
+<pre>let scores = ["Paul": 100, "Taylor": 95, "Adele": 90, "Michael": 85, "Justin": 60]
+let goodScores = scores.filter { $1 &gt; 85 }
+print(goodScores[0].1)</pre><h2>reduce()</h2>
+<p>The <code>reduce()</code> function condenses an array into a single value by applying a function to every item. Each time the function is called, you get passed the previous value from your function as well as the next item in your array. I've already used it a couple of times elsewhere in this book, using this example:</p>
+<pre>let scores = [100, 90, 95]
+let result = scores.reduce(0, combine: +)</pre>
+<p>That will make <code>result</code> equal to 285 by adding 0, 100, 90, and 95. The <code>0</code> is the initial value, which is used the first time your function – in this case <code>+</code> is called. Once you become more experienced with <code>reduce()</code> you'll start to realize why functional developers lean on it so heavily!</p>
+<p>To make the behavior of <code>reduce()</code> a little clearer, let's experiment with other possible uses. Read the code below:</p>
+<pre>let result = scores.reduce("") { $0 + String($1) }
+print(result)</pre>
+<p>What might that print? <code>reduce()</code> is a generic function, just like <code>map()</code> and <code>filter()</code>, which means it can work on a variety of types. With <code>reduce()</code> you can give it an array of type S (e.g. an array of integers) and get back an array of S (e.g. <code>[Int]</code> -&gt; <code>[Int]</code>) or of type T (i.e., Some Other Type, like strings).</p>
+<p>The two lines of code above operate on an array of integers (that's our type S), but it starts with an initial value of an empty string, which means our type T is <code>String</code>. Remember, the S and T are just arbitrary letters meaning &quot;some type here&quot; – we could have used T and U, or X and Y, or &quot;in&quot; and &quot;out&quot;. Take a look at the type signature for the <code>reduce()</code> method when it's used with an array of integers:</p>
+<pre>func reduce(initial: T, combine: (T, Int) throws -&gt; T)</pre>
+<p>That first <code>T</code> is what sets the return type, so when we use <code>""</code> (an empty string) for the initial value, the type signature looks like this:</p>
+<pre>func reduce(initial: String, combine: (String, Int) throws -&gt; String)</pre>
+<p>The <code>combine</code> part is interesting, because it mixes types: a <code>String</code> will be passed in to represent the cumulative value of the function so far, and an <code>Int</code> will be passed in as the next item from our <code>scores</code> array. We need to convert that integer into a string, as the function's return value must be a string.</p>
+<p>The body of our <code>reduce()</code> closure is <code>$0 + String($1)</code>, which means &quot;take the current string and add to it a string containing the contents of the current integer. When it first runs, the initial value (<code>""</code>) is used, and added to &quot;100&quot;, to give &quot;100&quot;. The second time &quot;100&quot; is added to &quot;90&quot; to make &quot;10090&quot;, because string addition means &quot;append&quot;. The third time it's &quot;10090&quot; + &quot;95&quot;, to give &quot;1009095&quot;, which is the final result.</p>
+<h3>Try it yourself</h3>
+<p>It's time to see how well you understand <code>reduce()</code>: try to use it to sum the number of characters used in all the names below:</p>
+<pre>let names = ["Taylor", "Paul", "Adele"]
+// your code here
+print(count)</pre>
+<p>That should print &quot;15&quot;, which is the sum of the lengths of &quot;Taylor&quot;, &quot;Paul&quot;, and &quot;Adele&quot;. This is a straight integer operation, but you can't just use <code>+</code> because you want to add the character count rather than appending strings.</p>
+<p>Give it a try now; below is my solution:</p>
+<pre>let names = ["Taylor", "Paul", "Adele"]
+let count = names.reduce(0) { $0 + $1.characters.count }
+print(count)</pre>
+<p>For comparison, here's the non-functional variant:</p>
+<pre>let names = ["Taylor", "Paul", "Adele"]
+var count = 0
+
+for name in names {
+    count += name.characters.count
+}
+
+print(count)</pre>
+<p>Again, it's not really about the difference in the number of lines of code. Instead, about it's about clarity of intent: with the non-functional variant we're manipulating each item directly, and you need to read the contents of the loop to see what happens to <code>count</code> – it's a variable now, so it could be changed in any number of ways.</p>
+<h3>Reducing to a boolean</h3>
+<p>A common programming task is to check whether all items in array evaluate to true for a given condition: &quot;is everyone over 18?&quot; or &quot;are all addresses in Canada?&quot; This is converting an array into a single value, which is perfect for <code>reduce()</code>. For example, we can check that our array of names contains strings that are at over four characters in length:</p>
+<pre>let names = ["Taylor", "Paul", "Adele"]
+let longEnough = names.reduce(true) { $0 &amp;&amp; $1.characters.count &gt; 4 }
+print(longEnough)</pre>
+<p>That function starts with an initial value of <code>true</code>, then uses <code>&amp;&amp;</code> to compare the existing value against a new one. As a reminder:</p>
+<ul>
+<li>false &amp;&amp; false == false</li>
+<li>true &amp;&amp; false == false</li>
+<li>false &amp;&amp; true == false</li>
+<li>true &amp;&amp; true == true</li>
+</ul>
+<p>Each time the function runs, it checks whether <code>$1.characters.count &gt; 4</code>, for example <code>"Taylor".characters.count &gt; 4</code>. That will return true, and our initial value was true, so Swift will run <code>true &amp;&amp; true</code> to make <code>true</code>. The next time it runs, <code>"Paul".characters.count &gt; 4</code> will return false, and our previous value was true, so Swift will run <code>true &amp;&amp; false</code> to make <code>false</code> Finally, <code>"Adele".characters.count &gt; 4</code> will return true, and our previous value was false, so Swift will run <code>false &amp;&amp; true</code> to make <code>false</code>.</p>
+<p>So, once the code runs <code>longEnough</code> will be set to false: we've successfully checked that all strings are at least a certain length.</p>
+<p>There's an obvious but unavoidable problem here, which is that if we're checking 1000 items and item 2 fails the test, we don't need to continue. With this functional approach all 1000 items will be checked, but with a regular <code>for</code> loop you can <code>break</code> as needed. This is a cost-benefit analysis you'll need to make for each situation that comes up, but I would suggest you prefer the functional approach by default and only switch when you think it's necessary.</p>
+<h3>Reducing to find a value</h3>
+<p>Reduce can also be used to find specific values in an array, but you need to keep in mind that there are often better solutions. For example, the code below finds the longest name in the array by comparing each name against the longest so far:</p>
+<pre>let names = ["Taylor", "Paul", "Adele"]
+let longest = names.reduce("") { $1.characters.count &gt; $0.characters.count ? $1 : $0 }</pre>
+<p>That code certainly works, but you could use <code>maxElement()</code> instead, like this:</p>
+<pre>let longest = names.maxElement { $1.characters.count &gt; $0.characters.count }</pre>
+<p>In this example, <code>reduce()</code> will do one extra comparison because of the initial value of <code>""</code>, however because you're starting with <em>something</em> you're always guaranteed a value to work with. In comparison, <code>maxElement()</code> returns an optional value that you then need to unwrap, so which you use will depend on your context.</p>
+<h3>Reducing a multi-dimensional array</h3>
+<p>I started this chapter by saying that &quot;the <code>reduce()</code> function condenses an array into a single value by applying a function to every item.&quot; That's true, but it might mean a bit more than you realized: the input can be an array of <em>anything</em> and the output can be any kind of value, even another array. To demonstrate this, I want to demonstrate using <code>reduce()</code> to convert an array of arrays (a two-dimensional array) into a single array.</p>
+<p>To make this work, we need to provide <code>reduce()</code> with an initial value of an empty array. Then each time it's called we'll add the new item (another array) to the existing one by using <code>+</code>. So, the code is this:</p>
+<pre>let numbers = [
+    [1, 1, 2],
+    [3, 5, 8],
+    [13, 21, 34]
+]
+
+let flattened: [Int] = numbers.reduce([]) { $0 + $1 }
+print(flattened)</pre>
+<p>Again, that code certainly works, but it could be more succinctly expressed by using <code>flatMap()</code> like this:</p>
+<pre>let flattened = numbers.flatMap { $0 }</pre>
+<p>You could even use <code>flatten()</code>, like this:</p>
+<pre>let flattened = Array(numbers.flatten())</pre>
+<p>The moral here is that as your functional arsenal grows, you'll discover several ways of solving the same problem – and that's perfectly fine!</p><h2>sort()</h2>
+<p>Sorting an array is a common task, and one most people are accustomed to performing using a functional approach – after all, when was the last time you tried to sort an array using a regular <code>for</code> loop?</p>
+<p>In fact, sorting is so common that you often don't need to write any special code to use it: if you have an array that holds a primitive data type such as strings or integers, Swift can sort it for you just by calling <code>sort()</code> with no parameters. Things only get more complicated if you want a custom sort order or have a complex data type such as a struct.</p>
+<p>Let's tackle custom sort order first using an earlier example: a student has entered their grades into your app for you to process. An initial implementation might look like this:</p>
+<pre>let scoresString = ["100", "95", "85", "90", "100"]
+let sortedString = scoresString.sort()
+print(sortedString)</pre>
+<p>However, the results are unlikely to be what you want: that program will output <code>["100", "100", "85", "90", "95"]</code>. This is because the elements are strings, so they are sorted character by character where 1 comes before 9 even though 100 is greater than 90.</p>
+<p>A second implementation might be to convert the strings to integers and sort them, like this:</p>
+<pre>let scoresInt = scoresString.flatMap { Int($0) }
+let sortedInt = scoresInt.sort()
+print(sortedInt)</pre>
+<p>If you were wondering why I used <code>flatMap()</code> rather than regular <code>map()</code>, it's because creating an integer from a string returns <code>Int?</code>, which means <code>scoresInt</code> would end up being <code>[Int?]</code> rather than <code>[Int]</code>. This isn't necessarily a problem, but it would mean writing more code: <code>[Int]</code> has a <code>sort()</code> method works with no parameters, whereas <code>[Int?]</code> does not. We'll look at this more soon.</p>
+<p>A third implementation is to write a custom sort function for our string array, which would convert each value to an integer and compare one with another. This is less efficient than using <code>flatMap()</code> then parameter-less <code>sort()</code> because each element would need to be converted to an integer multiple times: Swift would compare 95 to 100, then 85 to 100, then 85 to 95, and so on, with each comparison involving re-creating the integers.</p>
+<p>Even though it's less efficient, it's at least worth looking at the code:</p>
+<pre>let sortedString = scoresString.sort {
+    if let first = Int($0), second = Int($1) {
+        return first &lt; second
+    } else {
+        return false
+    }
+}
+
+print(sortedString)</pre>
+<p>Finally, let's look at using <code>map()</code> rather than <code>flatMap()</code>, which means working with optional integers. This will result in a sorted array of optional integers:</p>
+<pre>let scoresInt = scoresString.map { Int($0) }
+let sortedInt = scoresInt.sort {
+    if let unwrappedFirst = $0, unwrappedSecond = $1 {
+        return $0 &lt; $1
+    } else {
+        return false
+    }
+}</pre>
+<p>That will result in <code>[Optional(85), Optional(90), Optional(95), Optional(100), Optional(100)]</code> – almost certainly a less useful result than using <code>flatMap()</code>, despite using more code. Hopefully the difference between <code>map()</code> and <code>flatMap()</code> is becoming clearer!</p>
+<h3>Sorting complex data</h3>
+<p>When you have an array that contains a custom data type, e.g. a struct with various properties, you need to tell Swift what you want to use for sorting. You can do this in two ways, and I want to explain both so you can use whichever works best for you. Here is some code to provide something for us to work with:</p>
+<pre>struct Person {
+    var name: String
+    var age: Int
+}
+
+let taylor = Person(name: "Taylor", age: 26)
+let paul = Person(name: "Paul", age: 36)
+let justin = Person(name: "Justin", age: 22)
+let adele = Person(name: "Adele", age: 27)
+
+let people = [taylor, paul, justin, adele]</pre>
+<p>Because <code>people</code> doesn't store primitive data types, there's no parameter-less <code>sort()</code> method. So, the first way to sort the <code>people</code> array is simply by writing a custom closure for the <code>sort()</code> method, like this:</p>
+<pre>let sortedPeople = people.sort { $0.name &lt; $1.name }</pre>
+<p>Easy, right? And that solution is perfectly fine when you don't need to repeat the operation more than once. However, a smarter solution is to make your struct conform to the <code>Comparable</code> protocol so that you can use Swift's built-in <code>sort()</code> method. It's smarter because it keeps your sort logic centralized, and I recommend you add <code>Comparable</code> to all your structs so you can work with them more efficiently in your apps.</p>
+<p><strong>Note:</strong> <code>Comparable</code> builds on <code>Equatable</code>, so you're solving two problems at once by using <code>Comparable</code>.</p>
+<p>To make <code>Person</code> conform to <code>Comparable</code> you first need to add it to the list of protocols, like this:</p>
+<pre>struct Person: Comparable {
+    var name: String
+    var age: Int
+}</pre>
+<p>You then need to add two functions <em>outside</em> the struct: <code>&lt;</code> and <code>==</code>. These allow us to compare and sort items, so this is where you'll add your sorting logic. For this example, I want Swift to sort our structs using the <code>name</code> property, so I'll implement this function:</p>
+<pre>func &lt;(lhs: Person, rhs: Person) -&gt; Bool {
+    return lhs.name &lt; rhs.name
+}</pre>
+<p>Remember: that needs to go outside the <code>Person</code> struct, because you're modifying <code>&lt;</code> not <code>Person</code>. To make the <code>Comparable</code> protocol complete, you also need to implement the <code>==</code> function, again <em>outside</em> the <code>Person</code> struct:</p>
+<pre>func ==(lhs: Person, rhs: Person) -&gt; Bool {
+    return lhs.name == rhs.name &amp;&amp; lhs.age == rhs.age
+}</pre>
+<p>Now that Swift knows how to sort an array of <code>Person</code> instances, you can call <code>sort()</code> without any parameters again:</p>
+<pre>let sortedPeople = people.sort()</pre>
+<h3>Reverse sorting</h3>
+<p>Sorting items in reverse is more interesting than you might think. As you might imagine, reverse sorting is just a matter of changing <code>&lt;</code> for <code>&gt;</code> when writing your own code, like this:</p>
+<pre>let sortedString = scoresString.sort {
+    if let first = Int($0), second = Int($1) {
+        return first &gt; second
+    } else {
+        return false
+    }
+}
+
+print(sortedString)</pre>
+<p>So far, so easy. Where the interest comes is when you use the built-in <code>sort()</code> method, regardless of whether you're storing primitive data or structs that conform to <code>Comparable</code>. Number four in my list of Five Functional Principles was immutable data types, which is something that Swift does in abundance: strings, integers, arrays, structs and more are all immutable, and so represent a fixed value.</p>
+<p>Using value types allows Swift to do all sorts of optimization, and reverse sorting is a great example. Take a look at the code below – what do you think it will print?</p>
+<pre>let names = ["Taylor", "Paul", "Adele", "Justin"]
+print(names)
+
+let sorted = names.sort().reverse()
+print(sorted)</pre>
+<p>The first <code>print()</code> will output <code>["Taylor", "Paul", "Adele", "Justin"]</code>, which is exactly what you would expect: it's an array containing four strings. But the <em>second</em> call to <code>print()</code> is what's clever, because it outputs this:</p>
+<pre>ReverseRandomAccessCollection&lt;Array&lt;String&gt;&gt;(_base: ["Adele", "Justin", "Paul", "Taylor"])</pre>
+<p>That is quite clearly something else entirely: that's a <em>lazy</em> array that stores the original array as its base value and a function (reversing) alongside. This is because the array is a value type – it can't be changed – so Swift doesn't need to do the actual work of reversing items, and will instead just return values as needed. This means the <code>reverse()</code> method runs in constant time – O(1), if you like Big O notation – which is extremely efficient.</p>
+<p>If you want a &quot;real&quot; array rather than a <code>ReverseRandomAccessCollection</code> – for example if you want to access items individually – you can create an array like this:</p>
+<pre>let sorted = Array(names.sort().reverse())
+print(sorted)</pre><h2>Function composition</h2>
+<p>The second and third of my Five Functional Principles are to use higher-order functions and make your functions pure if possible. The combination of these two allows us to build new functions by composing – i.e., putting together – existing functions. This comes in two forms: simple chaining – i.e., running one pure function and piping its output into another – and true functional composition, which is creating new functions by assembling others like Lego bricks.</p>
+<p>Each approach is commonly used, so I'll cover them both here. Chaining really is very simple, so we'll start with that: if you can use <code>map()</code>, <code>flatMap()</code>, <code>filter()</code>, and so on, then chaining them is just a matter of making one call then immediately making another.</p>
+<p>Here's some example data for us to work with, which builds an array of tuples containing basic data about some cities:</p>
+<pre>let london = (name: "London", continent: "Europe", population: 8_539_000)
+let paris = (name: "Paris", continent: "Europe", population: 2_244_000)
+let lisbon = (name: "Lisbon", continent: "Europe", population: 530_000)
+let rome = (name: "Rome", continent: "Europe", population: 2_627_000)
+let tokyo = (name: "Tokyo", continent: "Asia", population: 13_350_000)
+
+let cities = [london, paris, lisbon, rome, tokyo]</pre>
+<p>To sum the population of all cities, you'd use <code>reduce()</code> like this:</p>
+<pre>let totalPopulation = cities.reduce(0) { $0 + $1.population }</pre>
+<p>To sum the population of cities located in Europe, you need to run <code>filter()</code> first then chain it to <code>reduce()</code> like this:</p>
+<pre>let europePopulation = cities.filter { $0.continent == "Europe" }.reduce(0) { $0 + $1.population }</pre>
+<p>To print formatted information about the biggest cities we can use <code>filter()</code> to select only cities with high population, <code>sort()</code> the result, use <code>prefix()</code> to select the first three items, use <code>map()</code> to convert the city tuples into a formatted array, then use <code>joinWithSeparator()</code> to create a single string:</p>
+<pre>let biggestCities = cities.filter { $0.population &gt; 5_000_000 }.sort { $0.population &gt; $1.population }.prefix(3).map { "\($0.name) is a big city, with a population of \($0.population)" }.joinWithSeparator("\n")</pre>
+<p>Clearly there soon comes a point where chaining functions together becomes hard to read – probably anything more than three will cause more confusion than it clears up.</p>
+<h3>Functional building blocks</h3>
+<p>Once you have a collection of small, re-usable functions in your code, you can create new functions by assembling your existing ones in specific combinations. This is called function composition, and I hope it will encourage you to ensure your functions can be composed easily!</p>
+<p>Swift does not have a compose operator – i.e., a special operator that makes function composition easy – so most people combine functions like this:</p>
+<pre>let foo = functionC(functionB(functionA()))</pre>
+<p>Some functional programmers create a compose operator, <code>&gt;&gt;&gt;</code>, that allows you to rewrite that code a little more clearly:</p>
+<pre>let foo = functionC &gt;&gt;&gt; functionB &gt;&gt;&gt; functionA</pre>
+<p>I don't find that particularly pleasant to read, because you still need to read right to left. Instead, I prefer to create a custom operator that lets you write code like this:</p>
+<pre>let foo = functionA &gt;&gt;&gt; functionB &gt;&gt;&gt; functionC</pre>
+<p>This isn't hard to do using operator overloading. I'll show you the code then explain how it works:</p>
+<pre>infix operator &gt;&gt;&gt; { associativity left }
+
+func &gt;&gt;&gt; &lt;T, U, V&gt;(lhs: T -&gt; U, rhs: U -&gt; V) -&gt; T -&gt; V {
+    return { rhs(lhs($0)) }
+}</pre>
+<p>That declares a new operator, <code>&gt;&gt;&gt;</code>, which uses three generic data types: T, U, and V. It works with two operands, <code>lhs</code> and <code>rhs</code>, which are two functions: <code>lhs</code> accepts a parameter of type T and returns a value of type U, and <code>rhs</code> accepts a parameter of type U and returns a value of type V. The whole <code>&gt;&gt;&gt;</code> function returns a function that accepts a <code>T</code> and returns a <code>V</code> – it just merges the two steps by calling <code>rhs(lhs($0))</code>.</p>
+<p>To make things a bit clearer, imagine our first function accepts an integer and returns a string, and the second function accepts a string and returns an array of strings. That would make <code>&gt;&gt;&gt;</code> look like this:</p>
+<pre>func &gt;&gt;&gt; (lhs: Int -&gt; String, rhs: String -&gt; [String]) -&gt; Int -&gt; [String] {
+    return { rhs(lhs($0)) }
+}</pre>
+<p>Hopefully that makes its behavior a bit clearer: by combining the two functions together, the resulting combined function accepts an integer (the input for the first function) and returns an array of strings (the output of the second function)/</p>
+<p>This operator is just syntactic sugar, but let me give you an example that demonstrates how useful it is. Consider the following code:</p>
+<pre>func generateRandomNumber(max: Int) -&gt; Int {
+    let number = Int(arc4random_uniform(UInt32(max)))
+    print("Using number: \(number)")
+    return number
+}
+
+func calculateFactors(number: Int) -&gt; [Int] {
+    return (1...number).filter { number % $0 == 0 }
+}
+
+func reduceToString(numbers: [Int]) -&gt; String {
+    return numbers.reduce("Factors: ") { $0 + String($1) + " " }
+}</pre>
+<p>When called in a sequence, that will generate a random number, calculate its the factors, then convert that factor array into a single string. To call that in code you would normally write this:</p>
+<pre>let result = reduceToString(calculateFactors(generateRandomNumber(100)))
+print(result)</pre>
+<p>That needs to be read from right to left: <code>generateRandomNumber()</code> is called first, then its return value is passed to <code>calculateFactors()</code>, then <em>its</em> return value is passed to <code>reduceToString()</code>. And if you need to write this code more than once, you need to make sure you keep the order correct even when making changes in the future.</p>
+<p>Using our new compose operator, there's a better solution: we can create a new function that combines all three of those, then re-use that function however we need. For example:</p>
+<pre>let combined = generateRandomNumber &gt;&gt;&gt; calculateFactors &gt;&gt;&gt; reduceToString
+print(combined(100))</pre>
+<p>There are several reasons I love this approach. First, it's read naturally: generate a random number, calculate its factors, then reduce to a string. Second, it lets you save the combined function for use as many times as you need. Third, you can compose your functions even further: <code>combined</code> could be used with <code>&gt;&gt;&gt;</code> to make an even bigger function. And fourth, the combined function automatically accepts the same parameter as the first function that was composed, so we use <code>combined(100)</code> rather than <code>combined()</code>.</p>
+<p>I hope this technique gives you another good reason to write small, modular functions: you can write as many as you want, each performing one small task, then create larger functions that combine those together in useful ways.</p><h2>Lazy functions</h2>
+<p>I've covered lazy sequences already, but now that you know a bit more about functional programming I want to go over one particular complexity you need to be aware of. As I said previously, lazy sequences <em>can</em> save you time, but you need to be careful because they can generate huge amounts of work.</p>
+<p>To demonstrate this, try the code below in a playground:</p>
+<pre>let numbers = 1...10000
+let lazyFilter = numbers.lazy.filter { $0 % 2 == 0 }
+let lazyMap = numbers.lazy.map { $0 * 2 }
+
+print(lazyFilter.count)
+print(lazyFilter.count)
+print(lazyMap[5000])
+print(lazyMap[5000])</pre>
+<p>When you run that, you'll see Swift runs the <code>$0 % 2 == 0</code> closure 10,000 times to calculate the first <code>print()</code> statement, then another 10,000 times to calculate the second <code>print()</code> statement. This is because the result of <code>filter()</code> can't be known until all items have been processed – Swift has no idea how many items are in the resulting array until everything has been processed. On the other hand, the third and fourth <code>print()</code> calls execute immediately, because Swift can run the <code>map()</code> closure on a single element and ignore the rest.</p>
+<p>This is particularly problematic when you chain functions together, because if <code>filter()</code> comes first in your chain you will end up having to repeat vast amounts of work.</p><h2>Functors and monads</h2>
+<p>Now that you understand some functional programming, I have some good news: you can start dropped words like &quot;functor&quot; and &quot;monad&quot; into your casual office conversations – something I'm sure you're desperate to do.</p>
+<p>First up: a functor is a container that implements <code>map()</code>. It doesn't need to be <em>called</em> <code>map()</code>, but it does need to do the same thing: convert A into B by applying a transformation. We've been using lots of arrays and optionals, both of which are functors. <code>map()</code> is <em>not</em> the functor – array is the functor, because it implements <code>map()</code>.</p>
+<p>A monad is a functor that also implements <code>flatMap()</code>. Again, arrays and optionals are monads. <a href="https://wiki.haskell.org/Monad_laws">The formal definition for monads in Haskell</a> – commonly seen as the definitive reference – adds a few other rules, but when you're working with Swift just think about <code>flatMap()</code> and you're there.</p>
+<p>So: a functor is a data type that can be mapped over, and a monad is a functor that also can be flatmapped over. That's it – go forth and dazzle your friends with your new-found vocabulary! (Actually, please don't: although the terms give us a shared vocabulary to use when discussing data types, they can also scare people who are new to functional programming.)</p>		</div>
+
+		<p style="text-align: center;">Copyright &copy; 2016 Paul Hudson, <a href="https://www.hackingwithswift.com">hackingwithswift.com</a>.<br /> <a href="http://twitter.com/twostraws">You should follow me on Twitter</a>.</p>
+	</body>
+</html>

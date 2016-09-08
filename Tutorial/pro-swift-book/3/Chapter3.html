@@ -1,0 +1,239 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Pro Swift</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<link rel="stylesheet" href="book-assets/project.css">
+	</head>
+
+	<body>
+		<p style="text-align: center;"><img id="logo" src="book-assets/logo.png" alt="Pro Swift" width="350" /></p>
+
+		<div id="container">
+<h1>Chapter 3: References and Values</h1><div class="snippet"><p><strong>Natasha Murashev (@natashatherobot), author and speaker</strong></p>
+<p>Next time you get a crash, follow these instructions to get right to the problem: click on the <code>objc_exception_throw</code> in your thread, then type &quot;po $arg1&quot; into the debug area to get the human-readable version of the error. If you use exception breakpoints, you can even add the &quot;po $arg1&quot; command there so it’s automatic.</p></div><h2>What's the difference?</h2>
+<p>Understanding and exploiting the difference between reference types and value types is a critically important skill for any serious Swift developer. It's not &quot;useful knowledge,&quot; or &quot;good to know,&quot; but critically important – I'm not saying that lightly.</p>
+<p>Over the next few chapters I'm going to go into detail about references and values so that you can learn for yourself, but first I want to start by explaining the difference between them. I've met too many developers who either don't understand or don't care – either of which is a mistake – so this is a sensible place to start.</p>
+<p>I'm a big Star Wars fan, and you might remember that the end of the original Star Wars film (later titled &quot;A New Hope&quot;) featured an attack on the Death Star. One of the Rebel pilots – Wedge Antilles – flew to attack the Death Star, but was damaged and had to fly back to base. Another Rebel pilot – Luke Skywalker – was also attacking the Death Star, but used the Force to save the day, at least until the next movie.</p>
+<p>To illustrate the difference between references and values, I want to recreate this movie scene in simple Swift code. It's not complete, but it's enough you can follow along:</p>
+<pre>// create a target
+var target = Target()
+
+// set its location to be the Death Star
+target.location = "Death Star"
+
+// tell Luke to attack the Death Star
+luke.target = target
+
+// oh no – Wedge is hit! We need to
+// tell him to fly home
+target.location = "Rebel Base"
+wedge.target = target
+
+// report back to base
+print(luke.target.location)
+print(wedge.target.location)</pre>
+<p>Now, the question is this: when those pilots report back to base, what will they say? The answer is, &quot;it depends.&quot; And what it depends on is – you guessed it – the difference between references and values.</p>
+<p>You see, if <code>Target</code> was a class, which is a reference type in Swift, it would look like this:</p>
+<pre>class Target {
+    var location = ""
+}</pre>
+<p>And if <code>Target</code> was a struct, which is a value type in Swift, it would look like this:</p>
+<pre>struct Target {
+    var location = ""
+}</pre>
+<p>The code is almost identical, with just one word different. But the result is big: if <code>Target</code> was a struct then Luke would target the Death Star and Wedge would target the Rebel Base, but if it was a class then both Luke and Wedge would target the Rebel Base – which would make a very unhappy ending for the Rebels, and some deeply confused cinemagoers.</p>
+<p>The reason for this behavior is that when you assign a reference type in more than one place, all those places point to the same piece of data. So even though Luke has a <code>target</code> property and Wedge has a <code>target</code> property, they are both pointing to the same instance of the <code>Target</code> class – changing one means the other changes too.</p>
+<p>On the other hand, value types always have only one owner. When you assign a value type in more than one place, all those places point to individual copies of that value. When the code <code>luke.target = target</code> is run, Luke gets his own unique copy of the <code>Target</code> instance. So, when that gets changed to &quot;Rebel Base&quot;, he doesn't care – he continues his attack on the Death Star.</p>
+<p>Swift is an aggressively value-oriented language, meaning that most of its data types are values rather than references. Booleans, integers, strings, tuples, and enums are all value types. Even arrays and dictionaries are value types, so the code below will print 3 and not 4:</p>
+<pre>var a = [1, 2, 3]
+var b = a
+a.append(4)
+print(b.count)</pre>
+<p>Value types are simpler than reference types, which is no bad thing. When you're giving a value to work with, you can be sure its value won't change by surprise because you have your own unique copy. You can also compare value types easily, and it doesn't matter <em>how</em> they got their value – as long as two values look the same, they <em>are</em> the same. For example, the code below will print &quot;Equal&quot; even though <code>a</code> and <code>b</code> were created very differently:</p>
+<pre>let a = [1, 2, 3]
+let b = Array(1...3)
+if a == b { print("Equal") }</pre>
+<p>In short, references are shared on assignment and so can have multiple owners, whereas values are copied on assignment and therefore only ever have one owner.</p><h2>Closures are references</h2>
+<p>This bit might hurt your brain, so if you rarely copy closures then feel free to skip over this chapter entirely.</p>
+<p>As I already said, booleans, numbers, strings, arrays, dictionaries, structs, and more are all value types in Swift. Classes are reference types, but so are closures. For simple closures, this doesn't really matter. For example, the code below stores a trivial closure in <code>printGreeting</code>, calls it, assigns it to <code>copyGreeting</code>, then calls <em>that</em>:</p>
+<pre>let printGreeting = { print("Hello!") }
+printGreeting()
+
+let copyGreeting = printGreeting
+copyGreeting()</pre>
+<p>In that code, the closure could be a value type and it wouldn't affect the output. Where things become complicated is when closures capture values, because any captured values are shared amongst any variables pointing at the same closure.</p>
+<p>To give you a practical example, the code below is a <code>createIncrementer()</code> function that accepts no parameters and returns a closure:</p>
+<pre>func createIncrementer() -&gt; () -&gt; Void {
+    var counter = 0
+
+    return {
+        counter += 1
+        print(counter)
+    }
+}</pre>
+<p>Inside the <code>createIncrementer()</code> function is a single variable, <code>counter</code>, which is initialized to 0. Because that variable is used inside the closure that gets returned, it will be captured. So, we can follow that function with code like this:</p>
+<pre>let incrementer = createIncrementer()
+incrementer()
+incrementer()</pre>
+<p>The first line calls <code>createIncrementer()</code> and stores its returned closure in <code>incrementer</code>. The following two lines call <code>incrementer()</code> twice, triggering the closure, so you'll see 1 then 2 being printed out – the counter is moving upwards as expected.</p>
+<p>Now for the important bit: because closures are references, if we create another reference to <code>incrementer</code>, they will share the same closure, and thus will also share the same <code>counter</code> variable. For example:</p>
+<pre>let incrementer = createIncrementer()
+incrementer()
+incrementer()
+
+let incrementerCopy = incrementer
+incrementerCopy()
+incrementer()</pre>
+<p>When that code is run, you'll see 1, 2, 3, 4 being printed out, because both <code>incrementer</code> and <code>incrementerCopy</code> are pointing at the exact same closure, and therefore at the same captured value.</p>
+<p>To repeat myself: if you use closures infrequently this is not likely to be a problem, and if you aren't using them to capture values then you're safe. Otherwise, step carefully: working with reference types can be hard enough without also introducing closure capturing.</p><h2>Why use structs?</h2>
+<p>If you're faced with the choice between a class or a struct – i.e. a reference or a value – there are good reasons for choosing structs. This comparison applies to all reference and value types, but the most common time you need to make a choice is when it comes down to a class or a struct, so that's the context I'll be using here.</p>
+<p>I already mentioned that value types are copied rather than shared, which means if your code has three different things pointing at the same struct they will each have their own copy – there's no chance of them treading on each others' toes. Once you understand this pass-by-copy behavior, you start to realize that it brings with it another set of benefits.</p>
+<p>If you work with apps that are in any way complicated, one of the biggest benefit of value types is that they are inherently thread-safe. That is, if you're doing work on one or more background threads, it's not possible to cause race conditions for value types. To avoid confusion, let me briefly explain what this is before I explain the reason.</p>
+<p>First, race conditions: this is the name given to a common class of bug caused by two pieces of code running in parallel where the order they finish affects the state of your program. For example, imagine I'm driving to your house to give you $1000, and a friend of yours is also driving to your house to demand payment for $200. I get there first, and give you the money. The friend gets there a few minutes later, and you give her $200 – all is well. Alternatively, your friend might drive faster than me and get there first, in which case they demand $200 and you haven't had any money from me – suddenly you have a fight on your hands.</p>
+<p>In software, this might mean trying to act on a result before you've received it, or trying to work with an object that hasn't been created yet. Regardless, the result is bad: your software behaves inconsistently depending on which action happens first, which makes the problem hard to find and hard to solve.</p>
+<p>Second, thread-safe: this is a term that means your code is written in such a way that multiple threads can use your data structures without affecting each other. If Thread A modifies something that Thread B was using, that is <em>not</em> thread-safe.</p>
+<p>Value types are inherently thread-safe because they aren't shared between threads – each thread would get its own copy of your data to work with, and can manipulate that copy as much as it wants without affecting other threads. Every copy is independent of other copies, so race conditions based on your data go away.</p>
+<p>Taking away (or at least dramatically reducing) threading issues is great, but value types have one even bigger benefit: they greatly reduce the number of relationships that exist in your code. To give you an example, it's common to see Core Data apps that set up their database in the app delegate, then pass references to the database or individual objects between view controllers. Every time you pass an object between view controllers, you're connecting them bi-directionally – the child view controller could modify that object in any number of ways, and all those changes silently appear in the parent view controller.</p>
+<p>As a result of this, the object relationships in your app can look less like a tree and more like an explosion in a spaghetti factory – relationships everywhere, changes that anyone could have made can appear and propagate throughout your app, and it all becomes very hard to reason about. That is, it becomes hard to say &quot;how does this code work?&quot; when your objects are entangled.</p>
+<p>This becomes a non-issue when you use value types: as soon as you pass a struct from one view controller to another, the child has its own independent copy – there is no implicit relationship formed there, and no chance that the child can screw up its value and break the parent.</p>
+<p>One last reason for preferring structs rather than classes: they come with memberwise initialization. This means the compiler automatically produces an initializer that provides default values for each of the struct's properties. For example:</p>
+<pre>struct Person {
+    var name: String
+    var age: Int
+    var favoriteIceCream: String
+}
+
+let taylor = Person(name: "Taylor Swift", age: 26, favoriteIceCream: "Chocolate")</pre>
+<p>It's a small thing, I know, but it's immensely practical and makes structs that little bit easier to use.</p><h2>Why use classes?</h2>
+<p>There are some good reasons for using classes over structs, although at least one of them can come back to bite you. Reference types are a bit like names or handles, or even pointers if you're an old-school developer: when you pass them around, everyone points at the same value. This means you can create a resource such as a database connection, and share it between lots of objects in your app without having to create new connections.</p>
+<p>Cunningly, this sharing aspect of classes is the strong reason both for and against using value types rather than references. The case for is one of flexibility and performance: in the short term, it's easy to pass one shared object around and have everyone modify it as needed. It's hacky, and it's brittle, but it's certainly easy to code. In fact, I would suggest that this approach is the <em>default</em> approach for many developers, particularly those who come from an Objective-C background.</p>
+<p>This approach is also likely to run very quickly, because you don't need to create copies of the object every time you pass it somewhere else. Instead, you create your object once and pass it wherever it's needed – as long as your code is written to be thread-safe, objects can even be using across threads without worrying too much.</p>
+<p>One feature that objects give you that structs don't is inheritance: the ability to take an existing class and build upon it. For many years now – easily one or even two generations of developers – inheritance has been a fundamental concept in software development, and now is deeply ingrained in our industry. It allows you to take an existing class, large or small, and build upon it in any way you want. You might add small tweaks, or massive changes. Some languages (not Swift fortunately!) allow you to inherit from multiple classes – intellectually very interesting, but rarely of use and never required.</p>
+<p>Finally, one major reason for using classes is that Cocoa Touch itself is written using classes: UIKit, SpriteKit, MapKit, Core Location, and more are all object-oriented, as are protocols such as <code>NSCoding</code> and <code>NSCopying</code>. If you are writing Swift code that needs to work with Cocoa or Cocoa Touch, such as saving a custom data type to <code>NSUserDefaults</code>, chances you are you will need classes at some point.</p><h2>Choosing between structs and classes</h2>
+<p>Whether to choose between a struct or a class depends on whether you want reference or value type behavior. Some of the advantages of each can actually be disadvantages depending on your context, so you'll need to read the advice below and make up your own mind.</p>
+<p>First, the benefit of thread safety and freedom from race conditions is a major reason to use value types. It's easy to imagine that we're very clever programmers and can handle multithreading in our sleep, but the truth is that it's just not how our brain works: computers can literally do two, four, eight or more complicated tasks <em>simultaneously</em>, which is extremely hard for mere mortals to understand never mind debug.</p>
+<p>Joel Spolsky wrote an excellent essay on this topic called &quot;The Duct Tape Programmer,&quot;<a href="http://www.joelonsoftware.com/items/2009/09/23.html">1</a> where the discusses the principle that smart programmers adopt simple solution – the equivalent duct tape and WD-40. In the essay, he cites multi-threading as one example of complicated code, and says that &quot;one principle duct tape programmers understand well is that any kind of coding technique that’s even slightly complicated is going to doom your project.&quot;</p>
+<p>You should also not underestimate the value of simplifying the relationships in your app. As I mentioned already, every time you pass an object from one place to another, you're implicitly creating a relationship that can backfire at any point in the future. If you did this only once or twice it might not be so hard to keep track of, but how often have you seen objects passed dozens of times? If you've ever used Core Data, you'll know that it's pretty much the antithesis of simple relationship modeling.</p>
+<p>So yes, objects let you share data between different parts of your app, but do you really need that? It's usually more efficient in terms of absolute performance, but it can create a hugely complicated mess of relationships inside your architecture. Some value types – specifically, the ones built into Swift itself – have an optimization called copy on write that makes passing them as performant as passing objects, because Swift won't copy the value unless you try to change it. Sadly, this optimization does not come with your own structs, so you either code it yourself or take a (small) performance hit.</p>
+<p>Another major advantage of classes is the ability to create a new class by inheriting from another. This is a powerful feature with a proven track record, and has the added benefit that many millions of developers understand the technique and have used it extensively. But as powerful as it is, inheritance has its own problems: if you design a smart, useful and clear architecture that goes from A to B to C and perhaps even to D, what happens if you change your mind later – trying to remove B or put E where B was, for example? The answer is that it gets very messy.</p>
+<p>Although inheritance is still a valuable tool in anyone's toolkit – particularly when it comes to building on Cocoa and Cocoa Touch – a newer, simpler approach is gaining popularity quickly: protocol-oriented development. This is where you add individual pieces of functionality horizontally rather than vertically, which allows you to change your mind as often as you want without causing problems. Swift's powerful ability to extend types as well as extensions makes inheritance far less useful than before: we make powerful data types through composition of functionality, rather than hierarchical inheritance.</p>
+<p>Again, a lot of your choice will depend on your context. However, based on the above I want to offer a few summarizing points to help guide you.</p>
+<p>First, I would recommend you choose structs over classes where possible. If you can't live without inheritance, or desperately need shared ownership of data, then go with classes, but structs should always be your default starting point. I prefer to use structs in my own code, but in this book I occasionally use classes because I'm trying to cover all bases.</p>
+<p>Second, if you must use a class, declare it <code>final</code>. This gives you a performance boost right now, but it also should be your default position: unless you have specifically thought, &quot;yes, this class safe to be subclassed by others&quot; then it's a mistake to allow it to happen. Do not underestimate the complexity of robust subclassability!</p>
+<p>Third, struct or class, declare your properties as constants where possible. Immutability – data that cannot be changed – is baked right into Swift thanks to the <code>let</code> keyword, and it's a good habit to stay with.</p>
+<p>Fourth, if you find yourself starting with a class no matter what, is this just a hangover from other programming languages? Objective-C developers use classes for almost everything, so classes can be a hard habit to shake. If you're someone who writes Swift as if it were Objective-C, you're missing half the fun – and half the efficiency – of this new language, so I suggest you give value types a thorough go before going back to classes.</p><h2>Mixing classes and structs</h2>
+<p>Once you understand value types and reference types, it's much easier to choose between a class and a struct – at least at first. But as your application grows, you might find your situation becomes less black and white: your app might work 95% of the time with value types, but maybe once or twice everything would have been a whole lot easier if you had a reference type instead.</p>
+<p>All is not lost: bearing in mind everything I've said about the relative advantages and disadvantages of both, there is a way to share value types in several places if you're convinced it's the right solution. The technique is called boxing – not the punchy, sweaty sort of boxing, but as in &quot;placing something inside a box.&quot; This approach wraps a value type inside a reference type so you can share it more easily, and is commonly seen in languages such as C# and Java.</p>
+<p><strong>Note:</strong> I'm not going to continue repeating the warning that sharing rather than copying values raising the complexity of your program; please just take it as read!</p>
+<p>I want to walk you through a practical example so you can see for yourself how it works. First, here's our <code>Person</code> struct again:</p>
+<pre>struct Person {
+    var name: String
+    var age: Int
+    var favoriteIceCream: String
+}
+
+let taylor = Person(name: "Taylor Swift", age: 26, favoriteIceCream: "Chocolate")</pre>
+<p>If we want to share that <code>taylor</code> struct across multiple objects, we'd create a <code>PersonBox</code> class like this:</p>
+<pre>final class PersonBox {
+    var person: Person
+
+    init(person: Person) {
+        self.person = person
+    }
+}
+
+let box = PersonBox(person: taylor)</pre>
+<p>That is a class container around the <code>Person</code> struct, and as a reference type will be shared rather than copied.</p>
+<p>Finally, let's create a <code>TestContainer</code> class that simulates some parts of your app, such as different view controllers:</p>
+<pre>final class TestContainer {
+    var box: PersonBox!
+}
+
+let container1 = TestContainer()
+let container2 = TestContainer()
+
+container1.box = box
+container2.box = box</pre>
+<p>That creates two containers, each of which point at the same <code>PersonBox</code> object, which in turn means they are pointing at the same <code>Person</code> struct. To prove this works, we could write code like the below:</p>
+<pre>print(container1.box.person.name)
+print(container2.box.person.name)
+
+box.person.name = "Not Taylor"
+
+print(container1.box.person.name)
+print(container2.box.person.name)</pre>
+<p>That will print &quot;Taylor Swift&quot; twice, then &quot;Not Taylor&quot; twice, proving that changing the value in one container changes the value in the other.</p>
+<p>If you intend to make extensive use of boxing and unboxing (warning warning blah blah you could write this yourself, I hope!), you might want to consider creating a generic <code>Box</code> class like this:</p>
+<pre>final class Box&lt;T&gt; {
+    var value: T
+
+    init(value: T) {
+        self.value = value
+    }
+}
+
+final class TestContainer {
+    var box: Box&lt;Person&gt;!
+}</pre>
+<p>That way you can share other types of structs without having to create lots of different box classes.</p>
+<p>It's undeniable that this approach weakens the power and safety of value types a little, but at least it makes explicit which situations give you the safety of value types and which don't – you're stating &quot;this bit is explicitly shared&quot; rather than implicitly sharing everything.</p>
+<p>There's one more thing you should know, and it's something that's fairly obvious if you're coming from an Objective-C background: boxing and unboxing can be helpful if you're facing significant referencing counting performance issues. Swift, like modern Objective-C, uses a system called Automatic Reference Counting (ARC), which keeps track of how many times an object is referenced. When that count reaches 0, the object is automatically destroyed.</p>
+<p>Swift's structs are <em>not</em> reference counted, because they are always uniquely referenced. But if a struct contains an object as one of its properties, that object <em>is</em> reference counted. For something small this isn't a problem, but if your struct has lots of objects as properties – let's say 10 – then suddenly ARC has to do 10 reference increments and decrements each time your struct is copied. In this situation, boxing your struct in a wrapper object simplifies things dramatically, because ARC would only need to manipulate the reference count for the box, not for all the individual properties.</p><h2>Immutability</h2>
+<p>Value and reference types differ in the way they handle immutability, but I've kept it separate here because it's quite a subtle difference and it's easy to get confused.</p>
+<p>Let me back track a little: one thing I love about Swift is that it's aggressively focused on immutability. That is, it's very easy to say &quot;don't let this value ever change.&quot; Not only does this mean that you're encouraged to use <code>let</code> rather than <code>var</code> when writing your code, but the Swift compiler will scan your code and warn when it finds places where variables could be made into constants. This is very different from Objective-C, where mutability was enforced only as part of your class name – <code>NSString</code> had an <code>NSMutableString</code> counterpart, <code>NSArray</code> had an <code>NSMutableArray</code> counterpart, and so on.</p>
+<p>Immutability and value types might seem to go hand in hand. After all, if a value is just a value, how can it change? Integers are value types in Swift, and you can't exactly say &quot;hey, I'm changing the number 5 so that 5 is actually equal to 6 now.&quot; But when you start comparing classes and structs, immutability is more complicated, and I want to explain why.</p>
+<p>Consider the following code:</p>
+<pre>struct Person {
+    var name: String
+    var age: Int
+}
+
+var taylor = Person(name: "Taylor Swift", age: 26)
+taylor.name = "Justin Bieber"</pre>
+<p>When that code runs, the final name value of the <code>taylor</code> instance is &quot;Justin Bieber,&quot; which is going to be a huge surprise for any Swifties attending a concert!</p>
+<p>If we change just one line of code, the result is very different:</p>
+<pre>let taylor = Person(name: "Taylor Swift", age: 26)
+taylor.name = "Justin Bieber"</pre>
+<p>With just one line different, the code won't even compile because changing the <code>name</code> property is disallowed. Even though the <code>name</code> and <code>age</code> properties are marked as variable, the <code>taylor</code> struct is marked as a constant so Swift will not allow any part of it to change.</p>
+<p>Here's where things get a bit complicated, but please knuckle down and bear with me: this is really important. Consider the following code:</p>
+<pre>final class Person {
+    var name: String
+    var age: Int
+
+    init(name: String, age: Int) {
+        self.name = name
+        self.age = age
+    }
+}
+
+let taylor = Person(name: "Taylor Swift", age: 26)
+taylor.name = "Justin Bieber"</pre>
+<p>That example changes <code>Person</code> to a class rather than a struct, but it leaves the <code>taylor</code> instance as being a constant. Now the code compiles, which is very different from when it was a struct.</p>
+<p>When <code>taylor</code> is a constant struct, you can't change its value or its properties. When it's a constant object, you can't change its value but you <em>can</em> change its properties, as long as they aren't marked individually as constant. This means using structs allows you to enforce immutability far more strongly than using classes, which can help simplify your code even further.</p>
+<p>The code below shows off all possible options – I've commented out the code that won't work:</p>
+<pre>// variable struct: changing property and changing value OK
+var taylor1 = PersonStruct(name: "Taylor Swift", age: 26)
+taylor1.name = "Justin Bieber"
+taylor1 = PersonStruct(name: "Justin Bieber", age: 22)
+
+// constant struct: changing property or value not allowed
+let taylor2 = PersonStruct(name: "Taylor Swift", age: 26)
+//taylor2.name = "Justin Bieber"
+//taylor2 = PersonStruct(name: "Justin Bieber", age: 22)
+
+// variable object: changing property and reference OK
+var taylor3 = PersonClass(name: "Taylor Swift", age: 26)
+taylor3.name = "Justin Bieber"
+taylor3 = PersonClass(name: "Justin Bieber", age: 22)
+
+// constant object: changing proerty OK, changing reference not allowed
+let taylor4 = PersonClass(name: "Taylor Swift", age: 26)
+taylor4.name = "Justin Bieber"
+//taylor4 = PersonClass(name: "Justin Bieber", age: 22)</pre>
+<p>As you can see, the difference occurs where constants are used: a constant object cannot be changed to point to a new object but you can change any of its properties, whereas a constant struct is totally fixed.</p>
+<p>The most common place where mutability is a concern is when dealing with collections, such as arrays. These are value types in Swift (hurray!) but they can also be mutable – you can add and remove elements freely if you declare them as <code>var</code>. If you are able to, declare them as immutable so that Swift can optimize their use and provide extra safety.</p>		</div>
+
+		<p style="text-align: center;">Copyright &copy; 2016 Paul Hudson, <a href="https://www.hackingwithswift.com">hackingwithswift.com</a>.<br /> <a href="http://twitter.com/twostraws">You should follow me on Twitter</a>.</p>
+	</body>
+</html>
