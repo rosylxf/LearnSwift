@@ -13,11 +13,28 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
+        
+        loadData {
+            print(self.view)
+        }
     }
 
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
+    func loadData(completion: @escaping ()->()) -> () {
+        //异步
+        DispatchQueue.global().async {
+            print("耗时操作")
+            
+            DispatchQueue.main.async {
+                //回调，执行闭包
+                completion()
+            }
+        }
+        
+    }
+    
+    //类似于Oc的dealloc
+    deinit {
+        print("deinit被调用")
     }
 
 
