@@ -9,6 +9,9 @@
 import UIKit
 
 class ViewController: UIViewController {
+    
+    var completionCallBack: (()->())?
+    
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -20,6 +23,10 @@ class ViewController: UIViewController {
     }
 
     func loadData(completion: @escaping ()->()) -> () {
+        
+        //使用属性记录闭包： self对闭包引用了
+        completionCallBack = completion
+        
         //异步
         DispatchQueue.global().async {
             print("耗时操作")
